@@ -409,7 +409,7 @@ bool FloatingPositioner::CalcDrawingYRel(
             if (curve && curve->m_object->Is({ LV, PHRASE, SLUR, TIE })) {
                 const int shift = this->Intersects(curve, CONTENT, unit);
                 if (shift != 0) {
-                    this->SetDrawingYRel(this->GetDrawingYRel() - shift);
+                    this->SetDrawingYRel(this->GetDrawingYRel() - shift); // FLAG
                 }
                 return true;
             }
@@ -420,7 +420,7 @@ bool FloatingPositioner::CalcDrawingYRel(
                 }
                 return true;
             }
-            yRel = -staffAlignment->CalcOverflowAbove(horizOverlapingBBox) + this->GetContentY1() - margin;
+            yRel = -staffAlignment->CalcOverflowAbove(horizOverlapingBBox) + this->GetContentY1() - margin; // FLAG
 
             const Object *object = dynamic_cast<const Object *>(horizOverlapingBBox);
             // For elements, that can have extender lines, we need to make sure that they continue in next system on the
@@ -435,7 +435,7 @@ bool FloatingPositioner::CalcDrawingYRel(
             }
             // Otherwise only if there is a vertical overlap
             else if (this->VerticalContentOverlap(horizOverlapingBBox, margin)) {
-                this->SetDrawingYRel(yRel);
+                this->SetDrawingYRel(yRel); // FLAG
             }
         }
         else {

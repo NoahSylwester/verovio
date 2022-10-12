@@ -970,6 +970,9 @@ int System::AdjustFloatingPositioners(FunctorParams *functorParams)
     params->m_classId = TRILL;
     m_systemAligner.Process(params->m_functor, params);
 
+    params->m_classId = HARM;
+    m_systemAligner.Process(params->m_functor, params);
+
     params->m_classId = FING;
     m_systemAligner.Process(params->m_functor, params);
 
@@ -1022,8 +1025,8 @@ int System::AdjustFloatingPositioners(FunctorParams *functorParams)
     adjustFloatingPositionerGrpsParams.m_place = STAFFREL_below;
     m_systemAligner.Process(&adjustFloatingPositionerGrps, &adjustFloatingPositionerGrpsParams);
 
-    params->m_classId = HARM;
-    m_systemAligner.Process(params->m_functor, params);
+    // params->m_classId = HARM;
+    // m_systemAligner.Process(params->m_functor, params); // FLAG
 
     adjustFloatingPositionerGrpsParams.m_classIds.clear();
     adjustFloatingPositionerGrpsParams.m_classIds.push_back(HARM);

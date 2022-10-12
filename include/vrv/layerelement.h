@@ -180,6 +180,9 @@ public:
      * Adjust the m_drawingYRel for the element to be centered on the inner content of the measure
      */
     void CenterDrawingX();
+    // ADDED
+    void CenterOnNoteX();
+    //
 
     /**
      * Returns the drawing top and bottom taking into accound stem, etc.
@@ -542,6 +545,7 @@ public:
      */
     Staff *m_crossStaff;
     Layer *m_crossLayer;
+    void SetDrawingX(int number) { m_drawingXRel = number; };
 
 protected:
     Alignment *m_alignment;

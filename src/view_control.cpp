@@ -2046,7 +2046,7 @@ void View::DrawHarm(DeviceContext *dc, Harm *harm, Measure *measure, System *sys
         }
 
         params.m_enclosedRend.clear();
-        params.m_y = harm->GetDrawingY();
+        params.m_y = harm->GetDrawingY(); // FLAG
 
         if (harm->GetFirst() && harm->GetFirst()->Is(FB)) {
             this->DrawFb(dc, *staffIter, dynamic_cast<Fb *>(harm->GetFirst()), params);

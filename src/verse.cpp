@@ -161,6 +161,7 @@ int Verse::AdjustSylSpacing(FunctorParams *functorParams)
         if ((*iter)->HasContentHorizontalBB()) {
             Syl *syl = vrv_cast<Syl *>(*iter);
             assert(syl);
+            previousSylShift = -1 * (syl->GetContentX2() / 4);
             syl->SetDrawingXRel(previousSylShift);
             previousSylShift += syl->GetContentX2() + syl->CalcConnectorSpacing(params->m_doc, params->m_staffSize);
             ++iter;
@@ -206,15 +207,15 @@ int Verse::AdjustSylSpacing(FunctorParams *functorParams)
     int overlap = params->m_lastSyl->GetContentRight() - (firstSyl->GetContentLeft() + xShift);
     overlap += params->m_lastSyl->CalcConnectorSpacing(params->m_doc, params->m_staffSize);
 
-    int nextFreeSpace = params->m_previousVerse->AdjustPosition(overlap, params->m_freeSpace, params->m_doc);
+    int nextFreeSpace = 0;//params->m_previousVerse->AdjustPosition(overlap, params->m_freeSpace, params->m_doc);
 
-    if (overlap > 0) {
+    if (false || overlap > 0) {
         // We are adjusting syl in two different measures - move only the to right barline of the first measure
         if (params->m_previousMeasure) {
             params->m_overlapingSyl.push_back(std::make_tuple(params->m_previousVerse->GetAlignment(),
                 params->m_previousMeasure->GetRightBarLine()->GetAlignment(), overlap));
             // Do it now
-            params->m_previousMeasure->m_measureAligner.AdjustProportionally(params->m_overlapingSyl);
+            // params->m_previousMeasure->m_measureAligner.AdjustProportionally(params->m_overlapingSyl);
             params->m_overlapingSyl.clear();
         }
         else {

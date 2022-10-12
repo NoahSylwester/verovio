@@ -78,6 +78,8 @@ public:
      */
     int CalcConnectorSpacing(Doc *doc, int staffSize);
 
+    void CenterOnNoteX();
+
     int GetDrawingWidth() const;
     int GetDrawingHeight() const;
 

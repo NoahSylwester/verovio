@@ -728,7 +728,7 @@ void Doc::PrepareData()
                 PrepareLyricsParams prepareLyricsParams;
                 Functor prepareLyrics(&Object::PrepareLyrics);
                 Functor prepareLyricsEnd(&Object::PrepareLyricsEnd);
-                this->Process(&prepareLyrics, &prepareLyricsParams, &prepareLyricsEnd, &filters);
+                this->Process(&prepareLyrics, &prepareLyricsParams, &prepareLyricsEnd, &filters); // FLAGGED
             }
         }
     }

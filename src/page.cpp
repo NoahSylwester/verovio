@@ -782,7 +782,7 @@ void Page::AdjustSylSpacingByVerse(InitProcessingListsParams &listsParams, Doc *
     if (listsParams.m_verseTree.child.empty()) return;
 
     Filters filters;
-
+    
     // Same for the lyrics, but Verse by Verse since Syl are TimeSpanningInterface elements for handling connectors
     for (staves = listsParams.m_verseTree.child.begin(); staves != listsParams.m_verseTree.child.end(); ++staves) {
         for (layers = staves->second.child.begin(); layers != staves->second.child.end(); ++layers) {
@@ -798,7 +798,7 @@ void Page::AdjustSylSpacingByVerse(InitProcessingListsParams &listsParams, Doc *
                 AdjustSylSpacingParams adjustSylSpacingParams(doc);
                 Functor adjustSylSpacing(&Object::AdjustSylSpacing);
                 Functor adjustSylSpacingEnd(&Object::AdjustSylSpacingEnd);
-                this->Process(&adjustSylSpacing, &adjustSylSpacingParams, &adjustSylSpacingEnd, &filters);
+                this->Process(&adjustSylSpacing, &adjustSylSpacingParams, &adjustSylSpacingEnd, &filters); // FLAGGED
             }
         }
     }

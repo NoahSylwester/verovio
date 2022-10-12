@@ -297,7 +297,7 @@ void StaffAlignment::SortPositioners()
                     }
                 }
                 else {
-                    return (left->GetObject()->GetClassId() < right->GetObject()->GetClassId());
+                    return (left->GetObject()->GetClassId() > right->GetObject()->GetClassId());
                 }
                 return false;
             });
@@ -443,7 +443,7 @@ int StaffAlignment::CalcOverflowAbove(const BoundingBox *box) const
     if (box->Is(FLOATING_POSITIONER)) {
         const FloatingPositioner *positioner = vrv_cast<const FloatingPositioner *>(box);
         assert(positioner);
-        return positioner->GetContentTop() - this->GetYRel();
+        return positioner->GetContentTop() - this->GetYRel(); // FLAG
     }
     return box->GetSelfTop() - this->GetYRel();
 }
@@ -824,7 +824,7 @@ int StaffAlignment::AdjustFloatingPositioners(FunctorParams *functorParams)
 
         auto i = overflowBoxes->begin();
         auto end = overflowBoxes->end();
-        while (i != end) {
+        while (i != end) { // FLAG
             // find all the overflowing elements from the staff that overlap horizontally (and, in case of extender
             // elements - vertically)
             LayerElement *element = dynamic_cast<LayerElement *>(*i);
@@ -840,7 +840,7 @@ int StaffAlignment::AdjustFloatingPositioners(FunctorParams *functorParams)
             });
             if (i != end) {
                 // update the yRel accordingly
-                (*iter)->CalcDrawingYRel(params->m_doc, this, *i);
+                (*iter)->CalcDrawingYRel(params->m_doc, this, *i); // FLAG
                 i++;
             }
         }

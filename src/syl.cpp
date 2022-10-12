@@ -24,7 +24,7 @@
 #include "verse.h"
 #include "vrv.h"
 #include "zone.h"
-
+#include <iostream>
 //----------------------------------------------------------------------------
 
 #include "MidiFile.h"
@@ -130,6 +130,20 @@ int Syl::GetDrawingHeight() const
     return 0;
 }
 
+// ADDED
+
+void Syl::CenterOnNoteX()
+{
+    if (m_xAbs != VRV_UNSET) return;
+
+    this->SetDrawingXRel(0);
+
+    Note *note = vrv_cast<Note *>(this->GetFirstAncestor(NOTE));
+    assert(note);
+    this->SetDrawingXRel(note->GetCenterX() - this->GetDrawingWidth() / 2);
+}
+//
+
 //----------------------------------------------------------------------------
 // Functor methods
 //----------------------------------------------------------------------------
@@ -143,13 +157,16 @@ int Syl::PrepareLyrics(FunctorParams *functorParams)
     if (verse) {
         m_drawingVerse = std::max(verse->GetN(), 1);
     }
-
-    this->SetStart(dynamic_cast<LayerElement *>(this->GetFirstAncestor(NOTE, MAX_NOTE_DEPTH)));
+    this->SetStart(dynamic_cast<LayerElement *>(this->GetFirstAncestor(NOTE, MAX_NOTE_DEPTH))); // FLAGGED
+    // this->m_xAbs = 0;//this->m_xAbs - 0.001;
+    // this->SetDrawingX(-1000);
     // If there isn't an ancestor note, it should be a chord
+    // std::cout << this->GetWidth();
     if (!this->GetStart()) {
         this->SetStart(dynamic_cast<LayerElement *>(this->GetFirstAncestor(CHORD, MAX_CHORD_DEPTH)));
     }
-
+    this->SetWordpos(sylLog_WORDPOS_NONE);
+    // this->CenterOnNoteX();
     // At this stage currentSyl is actually the previous one that is ending here
     if (params->m_currentSyl) {
         // The previous syl was an initial or median -> The note we just parsed is the end

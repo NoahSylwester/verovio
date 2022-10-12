@@ -122,6 +122,13 @@ public:
     const Accid *GetDrawingAccid() const;
     ///@}
 
+// ADDED
+    /**
+     * Return the center x of the note
+     */
+    int GetCenterX() const;
+//
+
     /**
      * @name Setter and getter for the drawing staff loc.
      * This is set by the CalcAlignmentPitchPos functor.

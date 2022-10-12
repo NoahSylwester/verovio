@@ -1371,6 +1371,14 @@ int Note::PrepareLayerElementParts(FunctorParams *functorParams)
     return FUNCTOR_CONTINUE;
 }
 
+// ADDED
+
+int Note::GetCenterX() const
+{
+    return (this->GetDrawingX() + this->GetDrawingLoc() / 2);
+}
+//
+
 int Note::PrepareLyrics(FunctorParams *functorParams)
 {
     PrepareLyricsParams *params = vrv_params_cast<PrepareLyricsParams *>(functorParams);

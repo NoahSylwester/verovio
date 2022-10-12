@@ -832,6 +832,7 @@ bool MusicXmlInput::ReadMusicXml(pugi::xml_node root)
             rend->SetFontweight(
                 rend->AttTypography::StrToFontweight(words.node().attribute("font-weight").as_string()));
             rend->AddChild(text);
+            // m_doc->GetCurrentScoreDef()->WriteSpacing(words.node()); // CHANGED
             if (words.node().attribute("default-y").as_float() < 2 * bottom) {
                 if (!foot) {
                     foot = new PgFoot();
@@ -2083,7 +2084,7 @@ void MusicXmlInput::ReadMusicXmlDirection(
 
             TextRendition(words, dir);
             defaultY = (defaultY < 0) ? std::abs(defaultY) : defaultY + 200;
-            dir->SetVgrp(defaultY);
+            dir->SetVgrp(defaultY); // FLAG
             m_controlElements.push_back({ measureNum, dir });
             m_dirStack.push_back(dir);
 
