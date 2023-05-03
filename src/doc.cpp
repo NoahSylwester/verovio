@@ -987,7 +987,7 @@ void Doc::CastOffDocBase(bool useSb, bool usePb, bool smart)
     this->ResetDataPage();
     this->SetDrawingPage(0);
 
-    bool optimize = false;
+    bool optimize = true; // FLAGGED
     for (auto const score : scores) {
         if (score->ScoreDefNeedsOptimization(m_options->m_condense.GetValue())) {
             optimize = true;
@@ -1777,7 +1777,7 @@ FontInfo *Doc::GetDrawingSmuflFont(int staffSize, bool graceSize)
 
 FontInfo *Doc::GetDrawingLyricFont(int staffSize)
 {
-    m_drawingLyricFont.SetPointSize(m_drawingLyricFontSize * staffSize / 100);
+    m_drawingLyricFont.SetPointSize(m_drawingLyricFontSize * staffSize / 100); // FLAGGED font
     return &m_drawingLyricFont;
 }
 

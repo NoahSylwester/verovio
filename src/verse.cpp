@@ -128,10 +128,12 @@ int Verse::AdjustSylSpacing(FunctorParams *functorParams)
     assert(params);
 
     /****** find label / labelAbbr */
-
+    // effectively shift the label if there is one (move entire verse then account for shift in syls)
+    int labelShift = 0;
     // If we have a <label>, reset the previous abbreviation
     if (this->FindDescendantByType(LABEL)) {
         params->m_currentLabelAbbr = NULL;
+        labelShift = 150;
     }
 
     bool newLabelAbbr = false;
@@ -153,17 +155,24 @@ int Verse::AdjustSylSpacing(FunctorParams *functorParams)
         *= params->m_doc->GetOptions()->m_lyricSize.GetValue() / params->m_doc->GetOptions()->m_lyricSize.GetDefault();
 
     int previousSylShift = 0;
-
-    this->SetDrawingXRel(-1 * shift);
+    
+    this->SetDrawingXRel(-1 * (shift + labelShift));
 
     ListOfObjects::iterator iter = syls.begin();
     while (iter != syls.end()) {
         if ((*iter)->HasContentHorizontalBB()) {
             Syl *syl = vrv_cast<Syl *>(*iter);
             assert(syl);
-            previousSylShift = -1 * (syl->GetContentX2() / 4);
+            // if (syl->GetText(syl).size() > 2 && previousSylShift < syl->GetContentX2()/2) {
+            if (syl->GetText(syl).size() > 2) {
+                // previousSylShift = -1 * ((syl->GetText(syl).size() * 30) - labelShift);
+                previousSylShift = -1 * (((syl->GetContentX2() - syl->GetContentX1()) / 5) - labelShift);
+            }
+            // else {
+            //     // previousSylShift = syl->GetContentX2() / 2;
+            // }
             syl->SetDrawingXRel(previousSylShift);
-            previousSylShift += syl->GetContentX2() + syl->CalcConnectorSpacing(params->m_doc, params->m_staffSize);
+            previousSylShift += syl->GetContentX2() + syl->CalcConnectorSpacing(params->m_doc, params->m_staffSize) - labelShift;
             ++iter;
         }
         else {
@@ -204,18 +213,30 @@ int Verse::AdjustSylSpacing(FunctorParams *functorParams)
     }
 
     // Use the syl because the content bounding box of the verse might be invalid at this stage
-    int overlap = params->m_lastSyl->GetContentRight() - (firstSyl->GetContentLeft() + xShift);
-    overlap += params->m_lastSyl->CalcConnectorSpacing(params->m_doc, params->m_staffSize);
+    int overlap = params->m_lastSyl->GetContentRight() - (firstSyl->GetContentLeft() + xShift); // FLAGGED
+    overlap += params->m_lastSyl->CalcConnectorSpacing(params->m_doc, params->m_staffSize) + 200;
+
+    // Measure *measure = params->m_previousMeasure;
+    // if (measure != NULL) {
+    //     int currentMeasureWidth = measure->GetRightBarLineLeft() - measure->GetLeftBarLineRight();
+    //     if (currentMeasureWidth < 10000) {
+    //         ArrayOfAdjustmentTuples boundaries{ std::make_tuple(measure->GetLeftBarLine()->GetAlignment(),
+    //                 measure->GetRightBarLine()->GetAlignment(), 10000 - currentMeasureWidth) };
+
+    //         measure->m_measureAligner.AdjustProportionally(boundaries);
+    //     }
+    // }
 
     int nextFreeSpace = 0;//params->m_previousVerse->AdjustPosition(overlap, params->m_freeSpace, params->m_doc);
+    // int nextFreeSpace = params->m_previousVerse->AdjustPosition(overlap, params->m_freeSpace, params->m_doc);
 
-    if (false || overlap > 0) {
+    if (overlap > 0) {
         // We are adjusting syl in two different measures - move only the to right barline of the first measure
         if (params->m_previousMeasure) {
             params->m_overlapingSyl.push_back(std::make_tuple(params->m_previousVerse->GetAlignment(),
                 params->m_previousMeasure->GetRightBarLine()->GetAlignment(), overlap));
             // Do it now
-            // params->m_previousMeasure->m_measureAligner.AdjustProportionally(params->m_overlapingSyl);
+            params->m_previousMeasure->m_measureAligner.AdjustProportionally(params->m_overlapingSyl);
             params->m_overlapingSyl.clear();
         }
         else {

@@ -101,6 +101,15 @@ enum MordentExtSymbolFlags {
     DEP_Below = 0x2
 };
 
+// define str split method, taken from https://stackoverflow.com/questions/14265581/parse-split-a-string-in-c-using-string-delimiter-standard-c
+std::vector<std::string> split(const std::string str, const std::string regex_str)
+{
+    std::regex regexz(regex_str);
+    std::vector<std::string> list(std::sregex_token_iterator(str.begin(), str.end(), regexz, -1),
+                                std::sregex_token_iterator());
+    return list;
+}
+
 enum class MetronomeElements { BEAT_UNIT, BEAT_UNIT_DOT, PER_MINUTE, SEPARATOR };
 
 //----------------------------------------------------------------------------
@@ -617,19 +626,27 @@ void MusicXmlInput::TextRendition(const pugi::xpath_node_set words, ControlEleme
         pugi::xml_node textNode = it->node();
         pugi::xml_node soundNode = textNode.parent().next_sibling("sound");
         std::string textStr = GetWordsOrDynamicsText(textNode);
+        // std::cout << "\n" << "11 " << textStr << "\n";
         std::string textColor = textNode.attribute("color").as_string();
         Object *textParent = element;
-        if (it != words.begin()) {
+        if (it != words.begin() && (!IsElement(textNode, "coda") && !IsElement(textNode, "segno"))) {
             textParent->AddChild(new Lb());
         }
+        // std::cout << "text content: " << textStr << "\n";
+        // std::cout << textNode.attribute("justify").as_string() << "\n";
         if (textNode.attribute("xml:lang") || textNode.attribute("xml:space") || textNode.attribute("color")
             || textNode.attribute("halign") || textNode.attribute("font-family") || textNode.attribute("font-style")
-            || textNode.attribute("font-weight") || textNode.attribute("enclosure")) {
+            || textNode.attribute("font-weight") || textNode.attribute("enclosure") || textNode.attribute("justify")) {
             Rend *rend = new Rend();
             rend->SetLang(textNode.attribute("xml:lang").as_string());
             rend->SetColor(textNode.attribute("color").as_string());
-            rend->SetHalign(
-                rend->AttHorizontalAlign::StrToHorizontalalignment(textNode.attribute("halign").as_string()));
+            rend->SetHalign(rend->AttHorizontalAlign::StrToHorizontalalignment(textNode.attribute("halign").as_string()));
+            if (textNode.attribute("justify")){
+                rend->SetHalign(rend->AttHorizontalAlign::StrToHorizontalalignment(textNode.attribute("justify").as_string()));
+                //  rend->append_attribute("text-anchor") = "end";
+                // TextElement *text = rend->GetFirstAncestor(TEXT_ELEMENT);
+                // text->append_attribute("text-anchor") = "end";
+            }
             rend->SetSpace(textNode.attribute("xml:space").as_string());
             rend->SetFontfam(textNode.attribute("font-family").as_string());
             rend->SetFontstyle(rend->AttTypography::StrToFontstyle(textNode.attribute("font-style").as_string()));
@@ -813,37 +830,111 @@ bool MusicXmlInput::ReadMusicXml(pugi::xml_node root)
 
     // generate page head
     pugi::xpath_node_set credits = root.select_nodes("/score-partwise/credit[@page='1']/credit-words");
+    // pugi::xpath_node_set creditTypes = root.select_nodes("/score-partwise/credit[@page='1']/credit-type");
     if (!credits.empty()) {
         PgHead *head = NULL;
         PgFoot *foot = NULL;
+        // pugi::xpath_node_set::const_iterator ctIt = creditTypes.begin();
         for (pugi::xpath_node_set::const_iterator it = credits.begin(); it != credits.end(); ++it) {
             pugi::xpath_node words = *it;
-            Rend *rend = new Rend();
-            Text *text = new Text();
-            text->SetText(UTF8to16(words.node().text().as_string()));
-            std::string lang = words.node().attribute("xml:lang").as_string();
-            rend->SetColor(words.node().attribute("color").as_string());
-            rend->SetHalign(
-                rend->AttHorizontalAlign::StrToHorizontalalignment(words.node().attribute("justify").as_string()));
-            rend->SetValign(
-                rend->AttVerticalAlign::StrToVerticalalignment(words.node().attribute("valign").as_string()));
-            rend->SetFontstyle(rend->AttTypography::StrToFontstyle(words.node().attribute("font-style").as_string()));
-            // rend->SetFontsize(rend->AttTypography::StrToFontsize(words.node().attribute("font-size").as_string()+std::string("pt")));
-            rend->SetFontweight(
-                rend->AttTypography::StrToFontweight(words.node().attribute("font-weight").as_string()));
-            rend->AddChild(text);
+            // pugi::xpath_node credit_type = *ctIt;
+            // ctIt++;
+            // std::string credit_type_text = credit_type.node().text().as_string();
+            // Rend *rend = new Rend();
+            // Text *text = new Text();
+            std::vector<std::string> splitText = split(words.node().text().as_string(), R"(\r\n|\\r\\n|\n\r|\\n\\r|\n|\\n|\r|\\r)"); //\r\n|\\r\\n|\n\r|\\n\\r|\n|\\n|\r|\\r
+            // text->SetText(UTF8to16(words.node().text().as_string()));
+            // std::string lang = words.node().attribute("xml:lang").as_string();
+            // rend->SetColor(words.node().attribute("color").as_string());
+            // rend->SetHalign(
+            //     rend->AttHorizontalAlign::StrToHorizontalalignment(words.node().attribute("justify").as_string()));
+            // rend->SetValign(
+            //     rend->AttVerticalAlign::StrToVerticalalignment(words.node().attribute("valign").as_string()));
+            // rend->SetFontstyle(rend->AttTypography::StrToFontstyle(words.node().attribute("font-style").as_string()));
+            // // rend->SetFontsize(rend->AttTypography::StrToFontsize(words.node().attribute("font-size").as_string()+std::string("pt")));
+            // rend->SetFontweight(
+            //     rend->AttTypography::StrToFontweight(words.node().attribute("font-weight").as_string()));
+            // rend->AddChild(text);
+            // for (auto& item: splitText)
+            // {
+            //     Rend *rend = new Rend();
+            //     Text *text = new Text();
+            //     text->SetText(UTF8to16(item));
+            //     rend->SetColor(words.node().attribute("color").as_string());
+            //     rend->SetHalign(
+            //         rend->AttHorizontalAlign::StrToHorizontalalignment(words.node().attribute("justify").as_string()));
+            //     rend->SetValign(
+            //         rend->AttVerticalAlign::StrToVerticalalignment(words.node().attribute("valign").as_string()));
+            //     rend->SetFontstyle(rend->AttTypography::StrToFontstyle(words.node().attribute("font-style").as_string()));
+            //     // rend->SetFontsize(rend->AttTypography::StrToFontsize(words.node().attribute("font-size").as_string()+std::string("pt")));
+            //     rend->SetFontweight(
+            //         rend->AttTypography::StrToFontweight(words.node().attribute("font-weight").as_string()));
+            //     rend->AddChild(text);
+            // }
             // m_doc->GetCurrentScoreDef()->WriteSpacing(words.node()); // CHANGED
-            if (words.node().attribute("default-y").as_float() < 2 * bottom) {
+
+            // if (((UTF16to8(text->GetText()).find("by") == std::string::npos) && credit_type_text.empty()) || (credit_type_text.compare("composer") == 0)) {
+            //     // rend->SetColor("red");
+            //     rend->SetDrawingYRel(words.node().attribute("default-y").as_float());
+            // }
+            std::vector<std::string> splitRightsText;
+            pugi::xpath_node_set rightsSet = root.select_nodes("/score-partwise/identification/rights");
+            if (!rightsSet.empty()) {
+                for (pugi::xpath_node_set::const_iterator it = rightsSet.begin(); it != rightsSet.end(); ++it) {
+                    pugi::xpath_node rights = *it;
+                    splitRightsText = split(rights.node().text().as_string(), R"(\r\n|\\r\\n|\n\r|\\n\\r|\n|\\n|\r|\\r)"); //\r\n|\\r\\n|\n\r|\\n\\r|\n|\\n|\r|\\r
+                }
+            }
+            if (!splitRightsText.empty() && !foot) {
+            // if (words.node().attribute("default-y").as_float() < 2 * bottom) {
                 if (!foot) {
                     foot = new PgFoot();
                 }
-                foot->AddChild(rend);
+                // foot->AddChild(rend);
+                for (auto& item: splitRightsText)
+                {
+                    Rend *rend = new Rend();
+                    Text *text = new Text();
+                    // std::cout << "footer text: " << item << "\n";
+                    text->SetText(UTF8to16(item));
+                    rend->SetColor(words.node().attribute("color").as_string());
+                    rend->SetHalign(
+                        rend->AttHorizontalAlign::StrToHorizontalalignment("center"));
+                    rend->SetValign(
+                        rend->AttVerticalAlign::StrToVerticalalignment("bottom"));
+                    rend->SetFontstyle(rend->AttTypography::StrToFontstyle(words.node().attribute("font-style").as_string()));
+                    // rend->SetFontsize(rend->AttTypography::StrToFontsize(words.node().attribute("font-size").as_string()+std::string("pt")));
+                    // rend->SetFontweight(
+                    //     rend->AttTypography::StrToFontweight(words.node().attribute("font-weight").as_string()));
+                    rend->AddChild(text);
+                    foot->AddChild(rend);
+                }
             }
-            else {
+            if (!(words.node().attribute("default-y").as_float() < 2 * bottom)) {
                 if (!head) {
                     head = new PgHead();
                 }
-                head->AddChild(rend);
+                // head->AddChild(rend);
+                for (auto& item: splitText)
+                {
+                    Rend *rend = new Rend();
+                    Text *text = new Text();
+                    text->SetText(UTF8to16(item));
+                    rend->SetColor(words.node().attribute("color").as_string());
+                    rend->SetHalign(
+                        rend->AttHorizontalAlign::StrToHorizontalalignment(words.node().attribute("justify").as_string()));
+                    rend->SetValign(
+                        rend->AttVerticalAlign::StrToVerticalalignment(words.node().attribute("valign").as_string()));
+                    rend->SetFontstyle(rend->AttTypography::StrToFontstyle(words.node().attribute("font-style").as_string()));
+                    if (strcmp(words.node().attribute("justify").as_string(), "center") == 0) {
+                        rend->SetFontsize(rend->AttTypography::StrToFontsize("550pt"));
+                    }
+                    // rend->SetFontsize(rend->AttTypography::StrToFontsize(words.node().attribute("font-size").as_string()+std::string("pt")));
+                    rend->SetFontweight(
+                        rend->AttTypography::StrToFontweight(words.node().attribute("font-weight").as_string()));
+                    rend->AddChild(text);
+                    head->AddChild(rend);
+                }
             }
         }
         if (head) {
@@ -1063,6 +1154,9 @@ bool MusicXmlInput::ReadMusicXml(pugi::xml_node root)
             delete iter->second;
             continue;
         }
+        // if (iter->second->GetType() == "tocoda" || iter->second->GetType() == "coda") {
+        //     continue;
+        // }
         measure->AddChild(iter->second);
     }
 
@@ -1663,6 +1757,10 @@ bool MusicXmlInput::ReadMusicXmlMeasure(
         // for now only check first part
         else if (IsElement(*it, "print") && node.select_node("parent::part[not(preceding-sibling::part)]")) {
             ReadMusicXmlPrint(*it, section);
+            pugi::xpath_node leftMargin = it->select_node(".//system-layout/system-margins/left-margin");
+            if (leftMargin.node().text().as_int() > 0) {
+                measure->m_measureLeftMargin = leftMargin.node().text().as_int();
+            }
         }
     }
 
@@ -2081,7 +2179,7 @@ void MusicXmlInput::ReadMusicXmlDirection(
             else {
                 dir->SetStaff(dir->AttStaffIdent::StrToXsdPositiveIntegerList(std::to_string(1 + staffOffset)));
             }
-
+// std::cout << "22\n" << words.first().node().attribute("xml:lang").as_string() << "\n";
             TextRendition(words, dir);
             defaultY = (defaultY < 0) ? std::abs(defaultY) : defaultY + 200;
             dir->SetVgrp(defaultY); // FLAG

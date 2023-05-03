@@ -530,6 +530,11 @@ public:
      */
     mutable MeasureAligner m_measureAligner;
 
+    /**
+     * The left margin of the measure, used sparingly and only for musicxml files due to the difference in element hierarchy.
+     */
+    int m_measureLeftMargin;
+
     TimestampAligner m_timestampAligner;
 
 protected:

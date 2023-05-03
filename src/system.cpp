@@ -493,13 +493,13 @@ int System::ScoreDefOptimize(FunctorParams *functorParams)
 
     if (params->m_firstScoreDef) {
         params->m_firstScoreDef = false;
-        if (!params->m_doc->GetOptions()->m_condenseFirstPage.GetValue()) {
-            return FUNCTOR_SIBLINGS;
-        }
+        // if (!params->m_doc->GetOptions()->m_condenseFirstPage.GetValue()) { // FLAGGED hide first system
+        //     return FUNCTOR_SIBLINGS;
+        // }
     }
 
     if (this->IsLastOfMdiv()) {
-        if (params->m_doc->GetOptions()->m_condenseNotLastSystem.GetValue()) {
+        if (params->m_doc->GetOptions()->m_condenseNotLastSystem.GetValue()) { // FLAGGED
             return FUNCTOR_SIBLINGS;
         }
     }
@@ -970,11 +970,20 @@ int System::AdjustFloatingPositioners(FunctorParams *functorParams)
     params->m_classId = TRILL;
     m_systemAligner.Process(params->m_functor, params);
 
+    params->m_classId = FERMATA;
+    m_systemAligner.Process(params->m_functor, params);
+
+    params->m_classId = DIR;
+    m_systemAligner.Process(params->m_functor, params);
+
     params->m_classId = HARM;
     m_systemAligner.Process(params->m_functor, params);
 
     params->m_classId = FING;
     m_systemAligner.Process(params->m_functor, params);
+
+    // params->m_classId = ENDING;
+    // m_systemAligner.Process(params->m_functor, params);
 
     params->m_classId = DYNAM;
     m_systemAligner.Process(params->m_functor, params);
@@ -999,11 +1008,11 @@ int System::AdjustFloatingPositioners(FunctorParams *functorParams)
     params->m_classId = BREATH;
     m_systemAligner.Process(params->m_functor, params);
 
-    params->m_classId = FERMATA;
+    params->m_classId = TEMPO;
     m_systemAligner.Process(params->m_functor, params);
 
-    params->m_classId = DIR;
-    m_systemAligner.Process(params->m_functor, params);
+    // params->m_classId = DIR;
+    // m_systemAligner.Process(params->m_functor, params);
 
     adjustFloatingPositionerGrpsParams.m_classIds.clear();
     adjustFloatingPositionerGrpsParams.m_classIds.push_back(DIR);
@@ -1011,9 +1020,6 @@ int System::AdjustFloatingPositioners(FunctorParams *functorParams)
     m_systemAligner.Process(&adjustFloatingPositionerGrps, &adjustFloatingPositionerGrpsParams);
     adjustFloatingPositionerGrpsParams.m_place = STAFFREL_below;
     m_systemAligner.Process(&adjustFloatingPositionerGrps, &adjustFloatingPositionerGrpsParams);
-
-    params->m_classId = TEMPO;
-    m_systemAligner.Process(params->m_functor, params);
 
     params->m_classId = PEDAL;
     m_systemAligner.Process(params->m_functor, params);
@@ -1094,10 +1100,10 @@ int System::CastOffPages(FunctorParams *functorParams)
     int currentShift = params->m_shift;
     // We use params->m_pageHeadHeight to check if we have passed the first page already
     if (params->m_pgHeadHeight != VRV_UNSET) {
-        currentShift += params->m_pgHeadHeight + params->m_pgFootHeight;
+        currentShift += params->m_pgHeadHeight + params->m_pgFootHeight + 100;
     }
     else {
-        currentShift += params->m_pgHead2Height + params->m_pgFoot2Height;
+        currentShift += params->m_pgHead2Height + params->m_pgFoot2Height + 100;
     }
 
     const int systemMaxPerPage = params->m_doc->GetOptions()->m_systemMaxPerPage.GetValue();

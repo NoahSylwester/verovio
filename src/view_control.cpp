@@ -2037,6 +2037,8 @@ void View::DrawHarm(DeviceContext *dc, Harm *harm, Measure *measure, System *sys
         // centre the harm only with @startid
         alignment = (harm->GetStart()->Is(TIMESTAMP_ATTR)) ? HORIZONTALALIGNMENT_left : HORIZONTALALIGNMENT_center;
     }
+    // CCLI adjust
+    alignment = HORIZONTALALIGNMENT_center;
 
     std::vector<Staff *>::iterator staffIter;
     std::vector<Staff *> staffList = harm->GetTstampStaves(measure, harm);
@@ -2048,6 +2050,52 @@ void View::DrawHarm(DeviceContext *dc, Harm *harm, Measure *measure, System *sys
         params.m_enclosedRend.clear();
         params.m_y = harm->GetDrawingY(); // FLAG
 
+        // std::cout << "\nDRaW HARM\n";
+// std::cout << measure->GetChildCount() << "\n";
+Harm* prevHarm = NULL;
+int prevHarmOverlap = 0;
+for (auto c : measure->GetChildren()) {
+    // std::cout << "ELEM NAME " << c->GetClassName() << "\n";
+    // if (c->GetChildCount() > 0) {
+    //     for (auto b : c->GetFirst()->GetChildren()) {
+    //         std::cout << "   " << b->GetClassName() << " " << "\n";
+    //         if (b->GetClassId() == 138) {
+    //             Rest* rest = dynamic_cast<Rest *>(b);
+    //             std::cout << "\n x " << rest->m_xAbs << " " << rest->GetDrawingXRel() << "\n";
+    //             rest->m_xAbs = 0;
+    //         }
+    //     }
+    // }
+    if (c == harm && prevHarm != NULL) {
+        int ptSize = m_doc->GetDrawingLyricFont((*staffIter)->m_drawingStaffSize)->GetPointSize();
+        // std::cout << "POSITION -> " << prevHarm->GetStart()->GetDrawingX() << " " << m_doc->GetDrawingLyricFont((*staffIter)->m_drawingStaffSize)->GetPointSize();
+        Text *rendText1 = dynamic_cast<Text *>(harm->FindDescendantByType(TEXT, 1));
+        std::wstring text1 = rendText1->GetText();
+        Text *rendText2 = dynamic_cast<Text *>(prevHarm->FindDescendantByType(TEXT, 1));
+        std::wstring text2 = rendText2->GetText();
+        // std::cout << "\nSIZE " << text1.size() << " " << text2.size();
+        prevHarmOverlap = (harm->GetStart()->GetDrawingX() + harm->GetStart()->GetDrawingRadius(m_doc)) - (prevHarm->GetStart()->GetDrawingX() + prevHarm->GetStart()->GetDrawingRadius(m_doc) + ptSize * text2.size());
+        break;
+    }
+    if (c->Is(HARM)) {
+        // std::cout << "HARM\n";
+        prevHarm = vrv_cast<Harm *>(c);
+        // std::cout << "\nSPACER!\n";
+        // Beam* spacer = new Beam();
+        // measure->InsertBefore(c, spacer);
+    }
+}
+// std::cout << "\noverlap: " << prevHarmOverlap << "\n";
+Text *rendText = dynamic_cast<Text *>(harm->FindDescendantByType(TEXT, 1));
+std::wstring text = rendText->GetText();
+std::string str( text.begin(), text.end() );
+// std::cout << "\n chord: " << str << "\n";
+if (prevHarmOverlap < 0) {
+    params.m_x -= prevHarmOverlap/4;
+    // std::cout << "\nSPACER!\n";
+    // Space* spacer = new Space();
+    // measure->InsertBefore(harm, spacer);
+}
         if (harm->GetFirst() && harm->GetFirst()->Is(FB)) {
             this->DrawFb(dc, *staffIter, dynamic_cast<Fb *>(harm->GetFirst()), params);
         }
@@ -2067,6 +2115,7 @@ void View::DrawHarm(DeviceContext *dc, Harm *harm, Measure *measure, System *sys
             dc->ResetBrush();
 
             this->DrawTextEnclosure(dc, params, (*staffIter)->m_drawingStaffSize);
+            // std::cout << "HARMEND " << harm->GetContentX1() << " " << harm->GetContentX2();
         }
     }
 

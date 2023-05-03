@@ -139,7 +139,8 @@ bool Score::ScoreDefNeedsOptimization(int optionCondense) const
 {
     if (optionCondense == CONDENSE_none) return false;
     // optimize scores only if encoded
-    bool optimize = (m_scoreDef.HasOptimize() && m_scoreDef.GetOptimize() == BOOLEAN_true);
+    bool optimize = true; //(m_scoreDef.HasOptimize() && m_scoreDef.GetOptimize() == BOOLEAN_true); //FLAGGED
+
     // if nothing specified, do not if there is only one grpSym
     if ((optionCondense == CONDENSE_auto) && !m_scoreDef.HasOptimize()) {
         ListOfConstObjects symbols = m_scoreDef.FindAllDescendantsByType(GRPSYM);

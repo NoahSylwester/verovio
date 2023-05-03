@@ -18,6 +18,7 @@
 #include "comparison.h"
 #include "controlelement.h"
 #include "doc.h"
+#include "dir.h"
 #include "editorial.h"
 #include "ending.h"
 #include "f.h"
@@ -32,6 +33,7 @@
 #include "staff.h"
 #include "staffdef.h"
 #include "syl.h"
+#include "sb.h"
 #include "system.h"
 #include "systemmilestone.h"
 #include "tempo.h"
@@ -72,6 +74,8 @@ Measure::Measure(bool measureMusic, int logMeasureNb)
     this->RegisterAttClass(ATT_NNUMBERLIKE);
     this->RegisterAttClass(ATT_POINTING);
     this->RegisterAttClass(ATT_TYPED);
+
+    m_measureLeftMargin = 0;
 
     m_measuredMusic = measureMusic;
     // We set parent to it because we want to access the parent doc from the aligners
@@ -1120,9 +1124,35 @@ int Measure::AdjustXPos(FunctorParams *functorParams)
     }
 
     int currentMeasureWidth = this->GetRightBarLineLeft() - this->GetLeftBarLineRight();
-    if (currentMeasureWidth < minMeasureWidth) {
+    // if (currentMeasureWidth < minMeasureWidth) {
+    //     ArrayOfAdjustmentTuples boundaries{ std::make_tuple(this->GetLeftBarLine()->GetAlignment(),
+    //         this->GetRightBarLine()->GetAlignment(), minMeasureWidth - currentMeasureWidth) };
+    //     m_measureAligner.AdjustProportionally(boundaries);
+    // } // FLAGGED
+    // vrv:ListOfObjects syls = this->FindAllDescendantsByType(SYL);
+    // int adjustmentWidth = 0;
+    // if (!syls.empty()) {
+    //     ListOfObjects::iterator iter = syls.begin();
+    //     while (iter != syls.end()) {
+    //         if ((*iter)->HasContentHorizontalBB()) {
+    //             Syl *syl = vrv_cast<Syl *>(*iter);
+    //             assert(syl);
+    //             int pointSize = params->m_doc->GetDrawingLyricFont(params->m_staffSize)->GetPointSize();
+    //             adjustmentWidth = adjustmentWidth + syl->GetText(syl).size() * pointSize/2;
+    //             ++iter;
+    //         }
+    //         else {
+    //             iter = syls.erase(iter);
+    //         }
+    //     }
+    // } else {
+    //     adjustmentWidth = 3000;
+    // }
+    // adjustmentWidth = 2000;
+    // std::cout << "TEXT SIZE MEASURE ADJUST " << adjustmentWidth << "\n";
+    if (currentMeasureWidth < 2500) {
         ArrayOfAdjustmentTuples boundaries{ std::make_tuple(this->GetLeftBarLine()->GetAlignment(),
-            this->GetRightBarLine()->GetAlignment(), minMeasureWidth - currentMeasureWidth) };
+            this->GetRightBarLine()->GetAlignment(), 2500 - currentMeasureWidth) };
         m_measureAligner.AdjustProportionally(boundaries);
     }
 
@@ -1287,6 +1317,26 @@ int Measure::CastOffSystems(FunctorParams *functorParams)
     Measure *measure = dynamic_cast<Measure *>(params->m_contentSystem->Relinquish(this->GetIdx()));
     assert(measure);
     params->m_currentSystem->AddChild(measure);
+
+    // ensure coda always starts a new system
+    if (nextMeasure) {
+        bool hasCoda = false;
+        ListOfObjects dirs = nextMeasure->FindAllDescendantsByType(DIR, false);
+        for (auto &object : dirs) {
+            if (object->Is(DIR)) {
+                Dir *dir = dynamic_cast<Dir *>(object);
+                std::string type = dir->GetType();
+                if (type == "coda") {
+                    hasCoda = true;
+                }
+            }
+        }
+        if (hasCoda && params->m_currentSystem != NULL) {
+            System *system = new System();
+            params->m_currentSystem = system;
+            params->m_page->AddChild(system);
+        }
+    }
 
     return FUNCTOR_SIBLINGS;
 }

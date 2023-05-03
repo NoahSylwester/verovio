@@ -934,7 +934,7 @@ int Page::AlignSystemsEnd(FunctorParams *functorParams)
             }
         }
         else {
-            footer->SetDrawingYRel(footer->GetContentHeight());
+            footer->SetDrawingYRel(footer->GetContentHeight() - 700);
         }
     }
 

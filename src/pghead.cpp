@@ -47,6 +47,7 @@ int PgHead::GetTotalHeight(const Doc *doc) const
     if (height > 0) {
         const int unit = doc->GetDrawingUnit(100);
         height += doc->GetOptions()->m_bottomMarginPgHead.GetValue() * unit;
+        height += 750; // Header adjust
     }
     return height;
 }

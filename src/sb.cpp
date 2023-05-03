@@ -14,6 +14,7 @@
 //----------------------------------------------------------------------------
 
 #include "doc.h"
+#include "dir.h"
 #include "editorial.h"
 #include "functorparams.h"
 #include "measure.h"
@@ -75,11 +76,22 @@ int Sb::CastOffSystems(FunctorParams *functorParams)
         Measure *measure
             = dynamic_cast<Measure *>(params->m_currentSystem->GetChild(params->m_currentSystem->GetChildCount() - 1));
         if (measure != NULL) {
+            ListOfObjects dirs = measure->FindAllDescendantsByType(DIR, false);
+            bool hasCoda = false;
+            for (auto &object : dirs) {
+                if (object->Is(DIR)) {
+                    Dir *dir = dynamic_cast<Dir *>(object);
+                    std::string type = dir->GetType();
+                    if (type == "coda") {
+                        hasCoda = true;
+                    }
+                }
+            }
             int measureRightX = measure->GetDrawingX() + measure->GetWidth() - params->m_shift;
             // LogDebug("ratio: %f\n", (float)measureRightX / (float)params->m_systemWidth);
             double smartSbThresh = params->m_doc->GetOptions()->m_breaksSmartSb.GetValue();
-            if (measureRightX > params->m_systemWidth * smartSbThresh) {
-                // Use this system break.
+            if (hasCoda || (measureRightX > params->m_systemWidth * smartSbThresh)) {
+                //Use this system break.
                 params->m_currentSystem = new System();
                 params->m_page->AddChild(params->m_currentSystem);
                 params->m_shift += measureRightX;

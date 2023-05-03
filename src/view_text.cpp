@@ -18,6 +18,7 @@
 
 #include "devicecontext.h"
 #include "doc.h"
+#include "dir.h"
 #include "dynam.h"
 #include "f.h"
 #include "fb.h"
@@ -312,7 +313,28 @@ void View::DrawRend(DeviceContext *dc, Rend *rend, TextDrawingParams &params)
     assert(rend);
 
     dc->StartTextGraphic(rend, "", rend->GetID());
-
+    Object *rendChild = rend->GetFirst();
+    // std::cout << rendChild->Is(TEXT_ELEMENT) << " " << rendChild->Is(TEXT) << "\n";
+    if (rendChild->Is(TEXT)) {
+        Text *rendText = dynamic_cast<Text *>(rendChild);
+        std::wstring text = rendText->GetText();
+        std::string str( text.begin(), text.end() );
+        // std::cout << params.m_laidOut;
+        // std::cout << "\nalign! " << params.m_alignment << " text " << str << " endtext\n";
+        // std::cout << "\n";
+        Object *parent = rend->GetParent();
+        // if (parent->Is(DIR)) {
+        //     Dir *dir = dynamic_cast<Dir *>(parent);
+        //     std::string type = dir->GetType();
+        //     if (type == "coda" || type == "tocoda" || type == "segno" || type == "dalsegno" || type == "time-only") {
+        //         std::cout << "\nchild count " << parent->GetChildCount() << "\n";
+        //         params.m_alignment = HORIZONTALALIGNMENT_right;
+        //         params.m_x = rend->GetDrawingX() - 1000;
+        //         params.m_y = rend->GetDrawingY();
+        //         dc->MoveTextTo(ToDeviceContextX(params.m_x), ToDeviceContextY(params.m_y), params.m_alignment);
+        //     }
+        // }
+    }
     if (params.m_laidOut) {
         if (params.m_alignment == HORIZONTALALIGNMENT_NONE) {
             params.m_alignment = rend->HasHalign() ? rend->GetHalign() : HORIZONTALALIGNMENT_left;

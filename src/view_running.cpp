@@ -23,6 +23,7 @@
 #include "pghead2.h"
 #include "text.h"
 #include "vrv.h"
+#include "rend.h"
 
 namespace vrv {
 

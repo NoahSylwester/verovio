@@ -817,6 +817,7 @@ void SvgDeviceContext::StartText(int x, int y, data_HORIZONTALALIGNMENT alignmen
     // m_currentNode.append_attribute("dx") = 0;
     // m_currentNode.append_attribute("dy") = 0;
     if (!anchor.empty()) {
+        // std::cout << "ANCHOR IS " << anchor << "\n";
         m_currentNode.append_attribute("text-anchor") = anchor.c_str();
     }
     // font-size seems to be required in <text> in FireFox and also we set it to 0px so space
@@ -856,6 +857,10 @@ void SvgDeviceContext::MoveTextTo(int x, int y, data_HORIZONTALALIGNMENT alignme
         if (alignment == HORIZONTALALIGNMENT_center) {
             anchor = "middle";
         }
+        // for (pugi::xml_node child : m_currentNode.children()) {
+        //     std::cout << "HERE I AM " << child.text().as_string() << "\n";
+        // }
+        // std::cout << "HERE I AM " << anchor << m_currentNode.first_child().text().as_string() << "\n";
         m_currentNode.append_attribute("text-anchor") = anchor.c_str();
     }
 }

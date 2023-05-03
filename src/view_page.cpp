@@ -1014,6 +1014,9 @@ void View::DrawMeasure(DeviceContext *dc, Measure *measure, System *system)
     assert(measure);
     assert(system);
 
+    if (measure->m_measureLeftMargin > 0) {
+        system->m_systemLeftMar = measure->m_measureLeftMargin * 20;
+    }
     // This is a special case where we do not draw (SVG, Bounding boxes, etc.) the measure for unmeasured music
     if (measure->IsMeasuredMusic()) {
         dc->StartGraphic(measure, "", measure->GetID());
@@ -1498,7 +1501,7 @@ void View::DrawSystemDivider(DeviceContext *dc, System *system, Measure *firstMe
 {
     assert(dc);
     assert(system);
-
+    return; // never draw system divider (CCLI specific use-case)
     // Draw system divider (from the second one) if scoreDef is optimized
     if (!firstMeasure || (m_options->m_systemDivider.GetValue() == SYSTEMDIVIDER_none)) return;
     // No system divider if we are on the first system of a page or of an mdiv
@@ -1734,7 +1737,14 @@ void View::DrawRunningChildren(DeviceContext *dc, Object *parent, TextDrawingPar
             // We are now reaching a text element - start set only here because we can have a figure
             TextDrawingParams paramsChild = params;
             dc->StartText(ToDeviceContextX(params.m_x), ToDeviceContextY(params.m_y), HORIZONTALALIGNMENT_left);
-            this->DrawTextElement(dc, dynamic_cast<TextElement *>(current), paramsChild);
+            TextElement* text_el = dynamic_cast<TextElement *>(current);
+            
+            if (text_el->GetParent() && text_el->GetParent()->Is(PGHEAD)) {
+                if (text_el->GetIdx() > 0 && (text_el->GetDrawingXRel() > 15000 || text_el->GetDrawingXRel() < 5000)) {
+                    text_el->SetDrawingYRel(text_el->GetDrawingYRel() - 750); // Header adjust
+                }
+            }
+            this->DrawTextElement(dc, text_el, paramsChild);
             dc->EndText();
         }
         else if (current->IsEditorialElement()) {

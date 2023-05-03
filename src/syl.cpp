@@ -132,16 +132,16 @@ int Syl::GetDrawingHeight() const
 
 // ADDED
 
-void Syl::CenterOnNoteX()
-{
-    if (m_xAbs != VRV_UNSET) return;
+// void Syl::CenterOnNoteX()
+// {
+//     if (m_xAbs != VRV_UNSET) return;
 
-    this->SetDrawingXRel(0);
+//     this->SetDrawingXRel(0);
 
-    Note *note = vrv_cast<Note *>(this->GetFirstAncestor(NOTE));
-    assert(note);
-    this->SetDrawingXRel(note->GetCenterX() - this->GetDrawingWidth() / 2);
-}
+//     Note *note = vrv_cast<Note *>(this->GetFirstAncestor(NOTE));
+//     assert(note);
+//     this->SetDrawingXRel(note->GetCenterX() - this->GetDrawingWidth() / 2);
+// }
 //
 
 //----------------------------------------------------------------------------
@@ -165,7 +165,7 @@ int Syl::PrepareLyrics(FunctorParams *functorParams)
     if (!this->GetStart()) {
         this->SetStart(dynamic_cast<LayerElement *>(this->GetFirstAncestor(CHORD, MAX_CHORD_DEPTH)));
     }
-    this->SetWordpos(sylLog_WORDPOS_NONE);
+    // this->SetWordpos(sylLog_WORDPOS_NONE);
     // this->CenterOnNoteX();
     // At this stage currentSyl is actually the previous one that is ending here
     if (params->m_currentSyl) {

@@ -947,12 +947,12 @@ Options::Options()
     this->Register(&m_adjustPageWidth, "adjustPageWidth", &m_general);
 
     m_breaks.SetInfo("Breaks", "Define page and system breaks layout");
-    m_breaks.Init(BREAKS_auto, &Option::s_breaks);
+    m_breaks.Init(BREAKS_smart, &Option::s_breaks);
     this->Register(&m_breaks, "breaks", &m_general);
 
     m_breaksSmartSb.SetInfo("Smart breaks sb usage threshold",
         "In smart breaks mode, the portion of system width usage at which an encoded sb will be used");
-    m_breaksSmartSb.Init(0.66, 0.0, 1.0);
+    m_breaksSmartSb.Init(0.0, 0.0, 1.0);
     this->Register(&m_breaksSmartSb, "breaksSmartSb", &m_general);
 
     m_condense.SetInfo("Condense", "Control condensed score layout");
@@ -982,11 +982,11 @@ Options::Options()
     this->Register(&m_expand, "expand", &m_general);
 
     m_footer.SetInfo("Footer", "Control footer layout");
-    m_footer.Init(FOOTER_auto, &Option::s_footer);
+    m_footer.Init(FOOTER_encoded, &Option::s_footer);
     this->Register(&m_footer, "footer", &m_general);
 
     m_header.SetInfo("Header", "Control header layout");
-    m_header.Init(HEADER_auto, &Option::s_header);
+    m_header.Init(HEADER_encoded, &Option::s_header);
     this->Register(&m_header, "header", &m_general);
 
     m_humType.SetInfo("Humdrum type", "Include type attributes when importing from Humdrum");

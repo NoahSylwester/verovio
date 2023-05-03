@@ -93,3 +93,6 @@ Release/
 *.vcxproj*
 *.sln
 
+# test svg outputs
+tests/**/*.svg
+usefulScripts
