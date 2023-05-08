@@ -1317,9 +1317,9 @@ int Measure::CastOffSystems(FunctorParams *functorParams)
     Measure *measure = dynamic_cast<Measure *>(params->m_contentSystem->Relinquish(this->GetIdx()));
     assert(measure);
     params->m_currentSystem->AddChild(measure);
-
-    // ensure coda always starts a new system
-    if (nextMeasure) {
+    
+    // ensure coda always starts a new system (CCLI coda system break)
+    if (nextMeasure != NULL) {
         bool hasCoda = false;
         ListOfObjects dirs = nextMeasure->FindAllDescendantsByType(DIR, false);
         for (auto &object : dirs) {

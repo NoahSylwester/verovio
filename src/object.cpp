@@ -1000,14 +1000,15 @@ void Object::Process(Functor *functor, FunctorParams *functorParams, Functor *en
     if (functor->m_returnCode == FUNCTOR_STOP) {
         return;
     }
-
+    if (this == NULL) {
+        functor->m_returnCode = FUNCTOR_STOP;
+        return;
+    }
     // Update the current score stored in the document
     this->UpdateDocumentScore(direction);
-
     if (!skipFirst) {
         functor->Call(this, functorParams);
     }
-
     // do not go any deeper in this case
     if (functor->m_returnCode == FUNCTOR_SIBLINGS) {
         functor->m_returnCode = FUNCTOR_CONTINUE;
@@ -1022,7 +1023,6 @@ void Object::Process(Functor *functor, FunctorParams *functorParams, Functor *en
         return;
     }
     deepness--;
-
     if (!this->SkipChildren(functor)) {
         // We need a pointer to the array for the option to work on a reversed copy
         ArrayOfObjects *children = &m_children;

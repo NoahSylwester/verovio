@@ -497,7 +497,6 @@ int System::ScoreDefOptimize(FunctorParams *functorParams)
         //     return FUNCTOR_SIBLINGS;
         // }
     }
-
     if (this->IsLastOfMdiv()) {
         if (params->m_doc->GetOptions()->m_condenseNotLastSystem.GetValue()) { // FLAGGED
             return FUNCTOR_SIBLINGS;
@@ -514,7 +513,9 @@ int System::ScoreDefOptimizeEnd(FunctorParams *functorParams)
 {
     ScoreDefOptimizeParams *params = vrv_params_cast<ScoreDefOptimizeParams *>(functorParams);
     assert(params);
-
+    if (params->m_currentScoreDef == NULL) { // shim for CCLI coda system break fix
+        return FUNCTOR_CONTINUE;
+    }
     params->m_currentScoreDef->Process(params->m_functor, params, params->m_functorEnd);
     m_systemAligner.SetSpacing(params->m_currentScoreDef);
 
@@ -973,6 +974,10 @@ int System::AdjustFloatingPositioners(FunctorParams *functorParams)
     params->m_classId = FERMATA;
     m_systemAligner.Process(params->m_functor, params);
 
+    // SYL check if they are some lyrics and make space for them if any
+    params->m_classId = SYL;
+    m_systemAligner.Process(params->m_functor, params);
+
     params->m_classId = DIR;
     m_systemAligner.Process(params->m_functor, params);
 
@@ -1054,9 +1059,9 @@ int System::AdjustFloatingPositioners(FunctorParams *functorParams)
     params->m_classId = REH;
     m_systemAligner.Process(params->m_functor, params);
 
-    // SYL check if they are some lyrics and make space for them if any
-    params->m_classId = SYL;
-    m_systemAligner.Process(params->m_functor, params);
+    // // SYL check if they are some lyrics and make space for them if any
+    // params->m_classId = SYL;
+    // m_systemAligner.Process(params->m_functor, params);
 
     /**** Process elements that needs to be put in between ****/
 
