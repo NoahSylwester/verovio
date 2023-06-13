@@ -970,7 +970,7 @@ Options::Options()
 
     m_condenseTempoPages.SetInfo(
         "Condense tempo pages", "When condensing a score also condense pages with a tempo change");
-    m_condenseTempoPages.Init(false);
+    m_condenseTempoPages.Init(true);
     this->Register(&m_condenseTempoPages, "condenseTempoPages", &m_general);
 
     m_evenNoteSpacing.SetInfo("Even note spacing", "Specify the linear spacing factor");

@@ -170,9 +170,11 @@ void View::DrawTimeSpanningElement(DeviceContext *dc, Object *element, System *s
     // The end is given either by the TimeSpanningInterface (end) or by the LinkingInterface (next)
     LayerElement *end = NULL;
     if (interface->GetEnd()) {
+        // std::cout << "TIMESPANNING\n";
         end = dynamic_cast<LayerElement *>(interface->GetEnd());
     }
     else if (element->HasInterface(INTERFACE_LINKING)) {
+        // std::cout << "LINKNIG\n";
         LinkingInterface *linkingInterface = element->GetLinkingInterface();
         assert(linkingInterface);
         if (linkingInterface->GetNextLink()) {
@@ -182,8 +184,13 @@ void View::DrawTimeSpanningElement(DeviceContext *dc, Object *element, System *s
             end = nextInterface->GetStart();
         }
     }
-
-    if (!this->HasValidTimeSpanningOrder(dc, element, start, end)) {
+    // std::cout << "THE END " << !(end == NULL) << "\n";
+    int x1Adjust = 0;
+    // std::cout << !dc->Is(BBOX_DEVICE_CONTEXT) << " " << (m_currentPage == vrv_cast<Page *>(start->GetFirstAncestor(PAGE))) << "\n";
+    if (!this->HasValidTimeSpanningOrder(dc, element, start, end) && element->Is({ LV, SLUR, BRACKETSPAN })) {
+        x1Adjust = 300; // CCLI hanging backwards tie fix
+    }
+    else if (!this->HasValidTimeSpanningOrder(dc, element, start, end)) {
         return;
     }
 
@@ -202,7 +209,7 @@ void View::DrawTimeSpanningElement(DeviceContext *dc, Object *element, System *s
         // we use the start measure
         measure = interface->GetStartMeasure();
         if (!Check(measure)) return;
-        x1 = start->GetDrawingX();
+        x1 = start->GetDrawingX() - x1Adjust;
         objectX = start;
         x2 = end->GetDrawingX();
         graphic = element;
@@ -408,6 +415,10 @@ bool View::HasValidTimeSpanningOrder(DeviceContext *dc, Object *element, LayerEl
             LogWarning("%s '%s' is ignored, since start '%s' does not occur temporally before end '%s'.",
                 element->GetClassName().c_str(), element->GetID().c_str(), start->GetID().c_str(),
                 end->GetID().c_str());
+            // return true;
+            // if (element->Is(LV) || element->Is(SLUR)) { //CCLI tie fix
+            //     return true;
+            // }
         }
         return false;
     }
@@ -431,6 +442,9 @@ void View::DrawBracketSpan(
     }
 
     int y = bracketSpan->GetDrawingY();
+    // if (bracketSpan->GetPlace() != STAFFREL_below) {
+    //     y -= staff->GetAlignment()->GetStaffHeight() * m_doc->GetDrawingUnit(staff->m_drawingStaffSize);
+    // }
 
     int startRadius = 0;
     if (!bracketSpan->GetStart()->Is(TIMESTAMP_ATTR)) {
@@ -496,7 +510,9 @@ void View::DrawBracketSpan(
         if ((bracketSpan->GetLform() != LINEFORM_dashed) && (bracketSpan->GetLform() != LINEFORM_solid)) {
             this->DrawFilledRectangle(dc, x1, y, x1 + bracketSize, y + lineWidth);
         }
-        this->DrawFilledRectangle(dc, x1, y, x1 + lineWidth, y - bracketSize);
+        if (bracketSpan->GetPlace() != STAFFREL_below) {
+            this->DrawFilledRectangle(dc, x1, y, x1 + lineWidth, y - bracketSize);
+        }
     }
     // Closing bracket
     if ((spanningType == SPANNING_START_END) || (spanningType == SPANNING_END)) {
@@ -504,12 +520,32 @@ void View::DrawBracketSpan(
         if ((bracketSpan->GetLform() != LINEFORM_dashed) && (bracketSpan->GetLform() != LINEFORM_solid)) {
             this->DrawFilledRectangle(dc, x2 - bracketSize, y, x2, y + lineWidth);
         }
-        this->DrawFilledRectangle(dc, x2 - lineWidth, y, x2, y - bracketSize);
+        if (bracketSpan->GetPlace() != STAFFREL_below) {
+            this->DrawFilledRectangle(dc, x2 - lineWidth, y, x2, y - bracketSize);
+        }
     }
     // We have a @lform - draw a full line
     if (bracketSpan->HasLform()) {
+        // if (bracketSpan->GetPlace() == STAFFREL_below) {
+        //     // std::cout << "\nPRE-Y " << y << " " << staff->GetAlignment()->GetStaffHeight() << " " << m_doc->GetDrawingUnit(staff->m_drawingStaffSize) << "\n\n";
+        //     y += staff->GetAlignment()->GetStaffHeight() * m_doc->GetDrawingUnit(staff->m_drawingStaffSize);
+        // }
+        // std::cout << "\nY " << y << " " << staff->GetAlignment()->GetStaffHeight() * m_doc->GetDrawingUnit(staff->m_drawingStaffSize) << "\n\n";
         if (bracketSpan->GetLform() == LINEFORM_solid) {
-            this->DrawFilledRectangle(dc, x1, y, x2, y - lineWidth);
+            // this->DrawFilledRectangle(dc, x1, y, x2, y - lineWidth);
+            if (bracketSpan->GetPlace() == STAFFREL_below) {
+            //     int thickness = m_options->m_lyricLineThickness.GetValue() * m_doc->GetDrawingUnit(staff->m_drawingStaffSize);
+            //     // Adjust it proportionally to the lyric size
+            //     thickness *= m_options->m_lyricSize.GetValue() / m_options->m_lyricSize.GetDefault();
+            // //     x1 += (int)m_doc->GetDrawingUnit(staff->m_drawingStaffSize) / 2;
+            //     y -= staff->GetAlignment()->GetStaffHeight() - (m_options->m_lyricSize.GetValue() * m_doc->GetDrawingUnit(staff->m_drawingStaffSize) / 5);
+            //     // std::cout << "Y1f  " << y <<" "<< x2 << " " << x1 << "\n";
+            //     if (x2 > x1) {
+            //         this->DrawFilledRectangle(dc, x1, y, x2, y + thickness);
+            //     }
+            } else {
+                this->DrawFilledRectangle(dc, x1, y, x2, y - lineWidth);
+            }
         }
         else if (bracketSpan->GetLform() == LINEFORM_dashed) {
             dc->SetPen(m_currentColour, lineWidth, AxSOLID, bracketSize);
@@ -1228,8 +1264,8 @@ void View::DrawSylConnector(
 {
     assert(syl);
     assert(syl->GetStart() && syl->GetEnd());
-    if (!syl->GetStart() || !syl->GetEnd()) return;
 
+    if (!syl->GetStart() || !syl->GetEnd()) return;
     const int y = staff->GetDrawingY() + this->GetSylYRel(syl->m_drawingVerse, staff);
 
     // Invalid bounding boxes might occur for empty syllables without text child
@@ -1239,6 +1275,7 @@ void View::DrawSylConnector(
     // The both correspond to the current system, which means no system break in-between (simple case)
     if (spanningType == SPANNING_START_END) {
         x1 = syl->GetContentRight();
+        // if (syl->GetFirstAncestor(NOTE)->
         if (syl->m_nextWordSyl) {
             x2 = syl->m_nextWordSyl->GetContentLeft();
         }
@@ -1282,7 +1319,7 @@ void View::DrawSylConnector(
         dc->StartGraphic(&sylConnector, "", syl->GetID(), false);
 
     dc->DeactivateGraphic();
-
+// std::cout << "HERE ARE THE Xs " << x1 << " " << x2 << "\n";
     this->DrawSylConnectorLines(dc, x1, x2, y, syl, staff);
 
     dc->ReactivateGraphic();
@@ -1567,6 +1604,9 @@ void View::DrawDir(DeviceContext *dc, Dir *dir, Measure *measure, System *system
                 params.m_y += (m_doc->GetTextLineHeight(&dirTxt, false) * (lineCount - 1) / 2);
             }
             params.m_y -= m_doc->GetTextXHeight(&dirTxt, false) / 2;
+        }
+        if (measure->GetID() == "footer-hidden-measure") {
+            params.m_y += system->GetHeight();
         }
 
         dc->SetBrush(m_currentColour, AxSOLID);
@@ -2392,7 +2432,7 @@ void View::DrawTempo(DeviceContext *dc, Tempo *tempo, Measure *measure, System *
     TextDrawingParams params;
     data_HORIZONTALALIGNMENT alignment = tempo->GetChildRendAlignment();
     // Tempo are left aligned by default;
-    if (alignment == 0) alignment = HORIZONTALALIGNMENT_left;
+    if (alignment == 0) alignment = HORIZONTALALIGNMENT_right; // CCLI change, this used to by left-aligned
 
     std::vector<Staff *>::iterator staffIter;
     std::vector<Staff *> staffList = tempo->GetTstampStaves(measure, tempo);

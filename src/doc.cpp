@@ -2059,10 +2059,10 @@ int Doc::PrepareLyricsEnd(FunctorParams *functorParams)
 {
     PrepareLyricsParams *params = vrv_params_cast<PrepareLyricsParams *>(functorParams);
     assert(params);
-    if (!params->m_currentSyl) {
+    if (!params->m_currentSyl || params->m_currentSyl->HasStartAndEnd()) {
         return FUNCTOR_STOP; // early return
     }
-    if (params->m_lastNoteOrChord && (params->m_currentSyl->GetStart() != params->m_lastNoteOrChord)) {
+    if (params->m_lastNoteOrChord && (params->m_currentSyl->GetStart() != params->m_lastNoteOrChord)) { // here is where long extender end gets set
         params->m_currentSyl->SetEnd(params->m_lastNoteOrChord);
     }
     else if (m_options->m_openControlEvents.GetValue()) {

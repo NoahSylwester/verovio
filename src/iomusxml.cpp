@@ -407,6 +407,14 @@ void MusicXmlInput::AddLayerElement(Layer *layer, LayerElement *element, int dur
     if (!element->Is({ BEAM, TUPLET })) {
         m_layerTimes[layer].emplace(m_durTotal + duration, element);
     }
+    if (element->Is({ REST, MREST, MULTIREST }) && m_lyricExtensionStack.size() > 0) {
+        if (!m_lyricExtensionStack.empty()) {
+            for (auto extendedSyl : m_lyricExtensionStack) {
+                m_lyricExtensionStack.back()->SetEnd(element);
+                m_lyricExtensionStack.pop_back();
+            }
+        }
+    }
 }
 
 Layer *MusicXmlInput::SelectLayer(pugi::xml_node node, Measure *measure)
@@ -1963,6 +1971,12 @@ void MusicXmlInput::ReadMusicXmlBarLine(pugi::xml_node node, Measure *measure, c
                 std::vector<Measure *> measureList;
                 measureList.push_back(measure);
                 m_endingStack.push_back({ measureList, endingInfo });
+                if (!m_tieStack.empty()) {
+                    for (auto tie : m_tieStack) {
+                        m_tieStack.back().first->SetEnd(measure->GetLeftBarLine());
+                        m_tieStack.pop_back();
+                    }
+                }
             }
         }
         else if (endingType == "stop" || endingType == "discontinue") {
@@ -2049,6 +2063,10 @@ void MusicXmlInput::ReadMusicXmlDirection(
             bracketSpan->SetLform(
                 bracketSpan->AttLineRendBase::StrToLineform(bracket.attribute("line-type").as_string()));
             // bracketSpan->SetPlace(bracketSpan->AttPlacementRelStaff::StrToStaffrel(placeStr.c_str()));
+            //should be line extender, CCLI fix
+            if (placeStr == "below") {
+                bracketSpan->SetPlace(STAFFREL_below);
+            }
             bracketSpan->SetFunc("unclear");
             bracketSpan->SetLstartsym(ConvertLineEndSymbol(bracket.attribute("line-end").as_string()));
             bracketSpan->SetTstamp(timeStamp);
@@ -2604,6 +2622,9 @@ void MusicXmlInput::ReadMusicXmlHarmony(pugi::xml_node node, Measure *measure, c
         else if (kind.attribute("text") && std::strcmp(kind.text().as_string(), "none")) {
             harmText = harmText + kind.attribute("text").as_string();
         }
+        else if (kind.attribute("text") && !std::strcmp(kind.text().as_string(), "none")) {
+            harmText = kind.attribute("text").as_string();
+        }
         else {
             harmText = harmText + ConvertKindToText(GetContent(kind));
         }
@@ -3023,6 +3044,13 @@ void MusicXmlInput::ReadMusicXmlNote(
             m_beamspanStack.push_back({ meiBeamSpan, { staff->GetN(), layer->GetN() } });
         }
 
+        if (!m_lyricExtensionStack.empty() && (node.child("lyric") == NULL) && ((nextNote.node().child("lyric") != NULL) || (nextNote.node().child("rest") != NULL))) {
+            for (auto extendedSyl : m_lyricExtensionStack) {
+                m_lyricExtensionStack.back()->SetEnd(note);
+                m_lyricExtensionStack.pop_back();
+            }
+        } 
+        // (else)
         // verse / syl
         for (pugi::xml_node lyric : node.children("lyric")) {
             short int lyricNumber = lyric.attribute("number").as_int();
@@ -3036,7 +3064,6 @@ void MusicXmlInput::ReadMusicXmlNote(
             for (pugi::xml_node childNode : lyric.children()) {
                 if (!strcmp(childNode.name(), "syllabic")) syllabic = GetContent(childNode);
                 if (!strcmp(childNode.name(), "text") && !HasAttributeWithValue(lyric, "print-object", "no")) {
-                    // const std::string textColor = textNode.attribute("color").as_string();
                     const std::string textStyle = childNode.attribute("font-style").as_string();
                     const std::string textWeight = childNode.attribute("font-weight").as_string();
                     const short int lineThrough = childNode.attribute("line-through").as_int();
@@ -3099,8 +3126,29 @@ void MusicXmlInput::ReadMusicXmlNote(
                     if (childNode.next_sibling("elision")) {
                         syl->SetCon(sylLog_CON_b);
                     }
-                    else if (lyric.child("extend")) {
-                        syl->SetCon(sylLog_CON_u);
+                    pugi::xpath_node xmlExtend = lyric.select_node("extend");
+                    if (xmlExtend) {
+                        if (strcmp(xmlExtend.node().attribute("type").as_string(), "stop") == 0) {
+                            // std::cout << "two\n";
+                            // if (!m_lyricExtensionStack.empty()) {
+                            //     for (auto extendedSyl : m_lyricExtensionStack) {
+                            //         m_lyricExtensionStack.back()->SetEnd(syl);
+                            //         m_lyricExtensionStack.pop_back();
+                            //     }
+                            // }
+                            
+                        }
+                        else {
+                            syl->SetCon(sylLog_CON_u);
+                            m_lyricExtensionStack.emplace_back(syl);
+                        } 
+                    }
+                    else if (!m_lyricExtensionStack.empty() && syl->m_nextWordSyl) {
+                        for (auto extendedSyl : m_lyricExtensionStack) {
+                            std::cout << "1\n";
+                            m_lyricExtensionStack.back()->SetEnd(note);
+                            m_lyricExtensionStack.pop_back();
+                        }
                     }
 
                     if (!textStyle.empty()) syl->SetFontstyle(syl->AttTypography::StrToFontstyle(textStyle.c_str()));
@@ -3119,6 +3167,13 @@ void MusicXmlInput::ReadMusicXmlNote(
                         syl->AddChild(text);
                     }
                     verse->AddChild(syl);
+                } else if (!HasAttributeWithValue(lyric, "print-object", "no") && lyric.child("extend")) {
+                    if (!m_lyricExtensionStack.empty() && (strcmp(lyric.child("extend").attribute("type").as_string(), "stop") == 0)) {
+                        for (auto extendedSyl : m_lyricExtensionStack) {
+                            m_lyricExtensionStack.back()->SetEnd(note);
+                            m_lyricExtensionStack.pop_back();
+                        }
+                    }
                 }
             }
             // TODO Tablature: <tabGrp> does not support child <verse>
@@ -3156,7 +3211,7 @@ void MusicXmlInput::ReadMusicXmlNote(
         }
 
         // ties
-        ReadMusicXmlTies(notations.node(), layer, note, measureNum);
+        ReadMusicXmlTies(node, layer, note, measureNum);
 
         // articulation
         std::vector<data_ARTICULATION> artics;
@@ -3820,14 +3875,58 @@ void MusicXmlInput::ReadMusicXmlBeamStart(const pugi::xml_node &node, const pugi
 void MusicXmlInput::ReadMusicXmlTies(
     const pugi::xml_node &node, Layer *layer, Note *note, const std::string &measureNum)
 {
-    pugi::xpath_node xmlTie = node.select_node("tied");
+    pugi::xpath_node xmlTie = node.select_node("notations[not(@print-object='no')]").node().select_node("tied");
+    // pugi::xpath_node xmlLyric = node.select_node("lyric");
     if (!xmlTie) return;
 
     const std::string tieType = xmlTie.node().attribute("type").as_string();
+    // if (xmlLyric) {
+    //     pugi::xpath_node xmlExtend = xmlLyric.node().select_node("extend");
+    //     const std::string extendType = xmlExtend.node().attribute("type").as_string();
+    //     std::cout << "extend " << extendType << (extendType == "stop") << "\n";
+    //     if ("stop" == extendType) {
+    //         if (!m_tieStack.empty() && note->IsEnharmonicWith(m_tieStack.back().second)) {
+    //         for (auto tiedNote : m_tieStack) {
+    //             if (note->IsEnharmonicWith(m_tieStack.back().second)) {
+    //                 m_tieStack.back().first->SetEndid("#" + note->GetID());
+    //                 m_tieStack.pop_back();
+    //             }
+    //         }
+    //     }
+    //     }
+    // }
     if ("stop" == tieType) { // add to stack if (endTie) or if pitch/oct match to open tie on m_tieStack
-        if (!m_tieStack.empty() && note->IsEnharmonicWith(m_tieStack.back().second)) {
-            m_tieStack.back().first->SetEndid("#" + note->GetID());
-            m_tieStack.pop_back();
+        if (!m_tieStack.empty()) {
+            for (auto tiedNote : m_tieStack) {
+                // if (note->IsEnharmonicWith(m_tieStack.back().second)) {
+                    m_tieStack.back().first->SetEndid("#" + note->GetID());
+                    m_tieStack.pop_back();
+                // }
+            }
+            // for (auto iter = m_tieStack.begin(); iter != m_tieStack.end(); ++iter) {
+            //     if (note->IsEnharmonicWith(iter->second)) {
+            //         iter->first->SetEndid("#" + note->GetID());
+            //         m_tieStack.erase(iter);
+            //         --iter;
+            //     }
+            // }
+        }
+        else if (m_tieStack.empty()) {  // CCLI hanging backwards tie fix
+            Lv *lv = new Lv();
+            // color
+            lv->SetColor(xmlTie.node().attribute("color").as_string());
+            // placement and orientation
+            lv->SetCurvedir(InferCurvedir(xmlTie.node()));
+            lv->SetLform(lv->AttCurveRend::StrToLineform(xmlTie.node().attribute("line-type").as_string()));
+            if (xmlTie.node().attribute("id")) lv->SetID(xmlTie.node().attribute("id").as_string());
+            // add it to the stack
+            m_controlElements.push_back({ measureNum, lv });
+            // set startid to the current note and set second timestamp (endpoint) right away, since we're going to link
+            // <lv> not to another element, but to timestamp
+            lv->SetStartid("#" + note->GetID());
+            double tstamp = std::min(static_cast<double>(m_layerEndTimes[layer]), static_cast<double>(m_durTotal));
+            tstamp = std::max(tstamp, static_cast<double>(m_durTotal));
+            lv->SetTstamp2({ 0, tstamp * (double)m_meterUnit / (4.0 * m_ppq) + 1 });
         }
         else {
             m_tieStopStack.push_back(note);

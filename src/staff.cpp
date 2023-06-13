@@ -473,10 +473,9 @@ int Staff::ScoreDefOptimize(FunctorParams *functorParams)
     }
 
     // Always show all staves when there is a fermata or a tempo
-    // (without checking if the fermata is actually on that staff) ---> CCLI fix, do actually check
-    // std::cout << this->GetN() << " " << staffDef->GetDrawingVisibility() << " " << ((params->m_hasFermata || params->m_hasTempo) && ((staffDef->FindDescendantByType(TEMPO) != NULL) || (staffDef->FindDescendantByType(FERMATA) != NULL))) << "\n";
-    // if ((params->m_hasFermata || params->m_hasTempo) && ((staffDef->FindDescendantByType(TEMPO) != NULL) || (staffDef->FindDescendantByType(FERMATA) != NULL))) { // CCLI Fix
-    if (params->m_hasFermata || params->m_hasTempo) { // CCLI Fix
+    // (without checking if the fermata is actually on that staff)
+
+    if ((params->m_hasFermata || params->m_hasTempo) && ((this->FindDescendantByType(NOTE) != NULL) || this->GetN() == 1)) { // CCLI Fix
         staffDef->SetDrawingVisibility(OPTIMIZATION_SHOW);
     }
 

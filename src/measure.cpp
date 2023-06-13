@@ -837,6 +837,17 @@ int Measure::ScoreDefOptimize(FunctorParams *functorParams)
 
     params->m_hasFermata = (this->FindDescendantByType(FERMATA));
     params->m_hasTempo = (this->FindDescendantByType(TEMPO));
+    ListOfObjects dirs = this->FindAllDescendantsByType(DIR); // CCLI fix for stopping empty coda measures from being optimized away
+    for (auto dir : dirs) {
+        if (dir->Is(DIR)) {
+            Dir* elem = vrv_cast<Dir *>(dir);
+            if (elem->GetType() == "coda") {
+                params->m_hasTempo = true;
+                break;
+            }
+        }
+    }
+    params->m_hasCoda = (this->FindDescendantByType(DIR));
 
     return FUNCTOR_CONTINUE;
 }
@@ -1675,8 +1686,9 @@ int Measure::GenerateTimemap(FunctorParams *functorParams)
     params->m_scoreTimeOffset = this->m_scoreTimeOffset.back();
     params->m_realTimeOffsetMilliseconds = this->m_realTimeOffsetMilliseconds.back();
     params->m_currentTempo = this->m_currentTempo;
-
-    params->m_timemap->AddEntry(this, params);
+    if (this->GetID() != "footer-hidden-measure") {
+        params->m_timemap->AddEntry(this, params);
+    }
 
     return FUNCTOR_CONTINUE;
 }

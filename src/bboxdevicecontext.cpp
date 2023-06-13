@@ -263,7 +263,6 @@ void BBoxDeviceContext::DrawRoundedRectangle(int x, int y, int width, int height
     if (penWidth % 2) {
         penWidth += 1;
     }
-
     this->UpdateBB(x - penWidth / 2, y - penWidth / 2, x + width + penWidth / 2, y + height + penWidth / 2);
 }
 

@@ -66,7 +66,11 @@ private:
     //
 public:
     //
+    void SetPlace(data_STAFFREL place_) { m_place = place_; }
+    data_STAFFREL GetPlace() const { return m_place; }
+    bool HasPlace() const;
 private:
+    data_STAFFREL m_place;
 };
 
 } // namespace vrv

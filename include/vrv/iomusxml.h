@@ -19,6 +19,7 @@
 #include "io.h"
 #include "metersig.h"
 #include "vrvdef.h"
+#include "syl.h"
 
 //----------------------------------------------------------------------------
 
@@ -498,6 +499,8 @@ private:
     std::vector<std::pair<Tie *, Note *>> m_tieStack;
     /* The stack for tie stops that might come before that tie was opened */
     std::vector<Note *> m_tieStopStack;
+    /* The lyric extensions */
+    std::vector<Syl *> m_lyricExtensionStack;
     /* The stack for hairpins */
     std::vector<std::pair<Hairpin *, musicxml::OpenSpanner>> m_hairpinStack;
     /* The stack for hairpin stops that might occur before a hairpin was started staffNumber, tStamp2, (hairpinNumber,

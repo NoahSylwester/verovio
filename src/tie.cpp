@@ -443,13 +443,15 @@ void Tie::CalculateXPosition(const Doc *doc, const Staff *staff, const Chord *st
             assert(dots);
             startPoint.x = dots->GetDrawingX() + (1 + startParentChord->GetDots()) * drawingUnit;
         }
-        endPoint.x -= (drawingUnit + doc->GetDrawingBarLineWidth(staff->m_drawingStaffSize)) / 2;
+        endPoint.x = startPoint.x + (drawingUnit + doc->GetDrawingBarLineWidth(staff->m_drawingStaffSize)) * 2;
+        // endPoint.x = (drawingUnit + doc->GetDrawingBarLineWidth(staff->m_drawingStaffSize)) / 2;
     }
     // Now this is the case when the tie is split but we are drawing the end of it
     else if (spanningType == SPANNING_END) {
         if (endNote) {
             endPoint.y = endNote->GetDrawingY();
             startPoint.y = endPoint.y;
+            // startPoint.x = endPoint.x - (drawingUnit + doc->GetDrawingBarLineWidth(staff->m_drawingStaffSize)) * 4;  // CCLI hanging backwards tie fix
             r2 = endNote->GetDrawingRadius(doc);
         }
         if (!isShortTie) {

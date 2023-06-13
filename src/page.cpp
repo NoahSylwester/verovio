@@ -934,7 +934,12 @@ int Page::AlignSystemsEnd(FunctorParams *functorParams)
             }
         }
         else {
-            footer->SetDrawingYRel(footer->GetContentHeight() - 700);
+            if (params->m_doc->GetOptions()->m_landscape.GetValue()) {
+                footer->SetDrawingYRel(-1500);
+            }
+            else {
+                footer->SetDrawingYRel(footer->GetContentHeight() - 700);
+            }
         }
     }
 

@@ -2554,6 +2554,7 @@ public:
         m_firstScoreDef = true;
         m_hasFermata = false;
         m_hasTempo = false;
+        m_hasCoda = false;
         m_doc = doc;
         m_functor = functor;
         m_functorEnd = functorEnd;
@@ -2563,6 +2564,7 @@ public:
     bool m_firstScoreDef;
     bool m_hasFermata;
     bool m_hasTempo;
+    bool m_hasCoda;
     Doc *m_doc;
     Functor *m_functor;
     Functor *m_functorEnd;

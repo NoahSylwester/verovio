@@ -1620,7 +1620,7 @@ void View::DrawSyl(DeviceContext *dc, LayerElement *element, Layer *layer, Staff
         currentFont.SetStyle(syl->GetFontstyle());
     }
     if (syl->GetStart()->GetDrawingCueSize()) {
-        currentFont.SetPointSize(m_doc->GetCueSize(currentFont.GetPointSize()));
+        // currentFont.SetPointSize(m_doc->GetCueSize(currentFont.GetPointSize())); // CCLI fix
     }
     dc->SetFont(&currentFont);
 

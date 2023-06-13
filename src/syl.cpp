@@ -180,8 +180,9 @@ int Syl::PrepareLyrics(FunctorParams *functorParams)
             if (params->m_currentSyl->GetStart() == params->m_penultimateNoteOrChord)
                 LogWarning("Syllable with underline extender under one single note '%s'",
                     params->m_currentSyl->GetStart()->GetID().c_str());
-            else
-                params->m_currentSyl->SetEnd(params->m_penultimateNoteOrChord);
+            // else
+                // params->m_currentSyl->SetEnd(params->m_penultimateNoteOrChord);
+                // std::cout << "BIG ONE\n";
         }
     }
 

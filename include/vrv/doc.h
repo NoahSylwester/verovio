@@ -477,6 +477,9 @@ public:
     std::string m_selectionStart;
     std::string m_selectionEnd;
 
+    /** List of syls that still have an open tie */
+    std::vector<Syl*> m_pendingOpenTies;
+
     /**
      * A copy of the header tree stored as pugi::xml_document
      */
