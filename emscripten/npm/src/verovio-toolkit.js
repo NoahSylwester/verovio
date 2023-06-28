@@ -16,6 +16,8 @@ export class VerovioToolkit {
 
     destroy() {
         VerovioToolkit.instances.splice(VerovioToolkit.instances.findIndex(i => i.ptr === this.ptr), 1);
+        this.VerovioModule._free();
+        // this.proxy._free();
         console.debug('Deleting toolkit instance');
         this.proxy.destructor(this.ptr);
     }

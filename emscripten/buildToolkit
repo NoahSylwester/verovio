@@ -85,7 +85,11 @@ $FLAGS .= " -DNDEBUG";
 $FLAGS .= " -std=c++$cpp";
 
 my $LFLAGS =  " -s ASM_JS=1";
-$LFLAGS .= " -s INITIAL_MEMORY=256MB";
+$LFLAGS .= " -s INITIAL_MEMORY=3000MB";
+# $LFLAGS .= " -s INITIAL_MEMORY=256MB";
+$LFLAGS .= " -s ALLOW_MEMORY_GROWTH=1";
+$LFLAGS .= " -fsanitize=address";
+
 $LFLAGS .= " -s TOTAL_STACK=128MB";
 $LFLAGS .= " -s WASM=0";
 $LFLAGS .= " --memory-init-file 0";
@@ -101,12 +105,15 @@ if ($wasmQ) {
 	#    https://emscripten.org/docs/porting/Debugging.html
 
 	# We can try to find the cause of integer overflow runtime errors with
-	# $FLAGS = " -g4 -O0 --emit-symbol-map";
+	$FLAGS = " -g4 -O0 --emit-symbol-map";
 
 	# SAFEHEAP=1 :: Adds additional memory access checks,
 	# and will give clear errors for problems like
 	# dereferencing 0 and memory alignment issues.
-	# $LFLAGS .= " -s SAFEHEAP=1";
+	$LFLAGS .= " -s SAFEHEAP=1";
+	$LFLAGS .= " -s ASSERTIONS=2";
+	$LFLAGS .= " -s ALLOW_MEMORY_GROWTH=1";
+	$LFLAGS .= " -fsanitize=address";
 
 	# For now, trapping them (followign option does not work with Safari)
 	#$FLAGS .= " -mnontrapping-fptoint";
@@ -114,7 +121,7 @@ if ($wasmQ) {
 	$FLAGS .= " -s STRICT=1";
 	# Linker flags
 	$LFLAGS = " -s WASM=1";
-	$LFLAGS .= " -s INITIAL_MEMORY=512MB";
+	$LFLAGS .= " -s INITIAL_MEMORY=3000MB";
 	$LFLAGS .= " -s TOTAL_STACK=256MB";
 	$LFLAGS .= " -s SINGLE_FILE=1";
 	$FLAGS_NAME = "-wasm";
