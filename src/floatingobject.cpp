@@ -832,6 +832,7 @@ int FloatingObject::PrepareTimeSpanning(FunctorParams *functorParams)
 
 int FloatingObject::PrepareTimestamps(FunctorParams *functorParams)
 {
+    // std::cout << this->GetClassId() << " " << this->HasInterface(INTERFACE_TIME_POINT) << "\n";
     // Pass it to the pseudo functor of the interface
     if (this->HasInterface(INTERFACE_TIME_POINT)) {
         TimePointInterface *interface = this->GetTimePointInterface();

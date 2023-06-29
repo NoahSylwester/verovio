@@ -286,6 +286,10 @@ public:
     int m_drawingLines;
 
     /**
+     * has this measure been 'manually hidden' by an engineer in Finale
+     */
+    bool m_isManuallyHidden;
+    /**
      * Notation type (CMN, mensural, black mensural, etc.), from the staffDef
      */
     data_NOTATIONTYPE m_drawingNotationType;

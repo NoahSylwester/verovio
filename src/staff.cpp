@@ -466,7 +466,8 @@ int Staff::ScoreDefOptimize(FunctorParams *functorParams)
             "Could not find staffDef for staff (%d) when optimizing scoreDef in Staff::ScoreDefOptimize", this->GetN());
         return FUNCTOR_SIBLINGS;
     }
-
+    bool isHidden = this->m_isManuallyHidden;
+    //  CCLI fix staff optimization
     // Always show staves with a clef change
     if (this->FindDescendantByType(CLEF)) {
         staffDef->SetDrawingVisibility(OPTIMIZATION_SHOW);
@@ -479,11 +480,15 @@ int Staff::ScoreDefOptimize(FunctorParams *functorParams)
         staffDef->SetDrawingVisibility(OPTIMIZATION_SHOW);
     }
 
+    if (isHidden) {
+        staffDef->SetDrawingVisibility(OPTIMIZATION_HIDDEN);
+    }
+
     if (staffDef->GetDrawingVisibility() == OPTIMIZATION_SHOW) {
         return FUNCTOR_SIBLINGS;
     }
 
-    staffDef->SetDrawingVisibility(OPTIMIZATION_HIDDEN);
+    // staffDef->SetDrawingVisibility(OPTIMIZATION_HIDDEN);
 
     // Ignore layers that are empty (or with @sameas)
     ListOfObjects layers;

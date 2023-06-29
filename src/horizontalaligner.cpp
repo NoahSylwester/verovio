@@ -881,6 +881,7 @@ TimestampAttr *TimestampAligner::GetTimestampAtTime(double time)
         }
     }
     // nothing found
+    // std::cout << this->GetChildCount() << " nothing found\n"; 
     timestampAttr = new TimestampAttr();
     timestampAttr->SetDrawingPos(time);
     timestampAttr->SetParent(this);

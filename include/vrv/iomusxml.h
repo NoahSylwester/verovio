@@ -199,7 +199,7 @@ private:
      */
     ///@{
     bool ReadMusicXmlPart(pugi::xml_node node, Section *section, short int nbStaves, const short int staffOffset);
-    bool ReadMusicXmlMeasure(pugi::xml_node node, Section *section, Measure *measure, short int nbStaves,
+    bool ReadMusicXmlMeasure(pugi::xml_node node, Section *section, Measure *measure, Measure *prevMeasure, short int nbStaves,
         const short int staffOffset, int index);
     ///@}
 
@@ -223,7 +223,7 @@ private:
     void ReadMusicXmlForward(pugi::xml_node, Measure *measure, const std::string &measureNum);
     void ReadMusicXmlHarmony(pugi::xml_node, Measure *measure, const std::string &measureNum);
     void ReadMusicXmlNote(
-        pugi::xml_node, Measure *measure, const std::string &measureNum, const short int staffOffset, Section *section);
+        pugi::xml_node node, pugi::xml_node prevNode, Measure *measure, Measure *prevMeasure, const std::string &measureNum, const short int staffOffset, Section *section);
     void ReadMusicXmlPrint(pugi::xml_node, Section *section);
     bool ReadMusicXmlBeamsAndTuplets(const pugi::xml_node &node, Layer *layer, bool isChord);
     void ReadMusicXmlTupletStart(const pugi::xml_node &node, const pugi::xml_node &tupletStart, Layer *layer);
@@ -461,6 +461,7 @@ private:
 private:
     /* octave offset */
     std::vector<int> m_octDis;
+    std::set<int> m_hiddenStaves;
     /* measure repeats */
     bool m_mRpt = false;
     /* measure repeats */
@@ -500,7 +501,7 @@ private:
     /* The stack for tie stops that might come before that tie was opened */
     std::vector<Note *> m_tieStopStack;
     /* The lyric extensions */
-    std::vector<Syl *> m_lyricExtensionStack;
+    std::vector<std::pair<std::pair<int, std::string>, Syl *>> m_lyricExtensionStack;
     /* The stack for hairpins */
     std::vector<std::pair<Hairpin *, musicxml::OpenSpanner>> m_hairpinStack;
     /* The stack for hairpin stops that might occur before a hairpin was started staffNumber, tStamp2, (hairpinNumber,

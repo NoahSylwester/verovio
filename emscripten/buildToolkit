@@ -113,7 +113,7 @@ if ($wasmQ) {
 	$LFLAGS .= " -s SAFEHEAP=1";
 	$LFLAGS .= " -s ASSERTIONS=2";
 	$LFLAGS .= " -s ALLOW_MEMORY_GROWTH=1";
-	$LFLAGS .= " -fsanitize=address";
+	$LFLAGS .= " -fsanitize=leak";
 
 	# For now, trapping them (followign option does not work with Safari)
 	#$FLAGS .= " -mnontrapping-fptoint";

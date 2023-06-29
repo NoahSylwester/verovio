@@ -167,6 +167,7 @@ bool Tie::CalculatePosition(const Doc *doc, const Staff *staff, int x1, int x2, 
     Chord *endParentChord = NULL;
     Layer *layer1 = NULL;
     if (note1) {
+        // std::cout << dynamic_cast<Measure *>(note1->GetFirstAncestor(MEASURE))->GetN() << " - " << note1->GetPname() << "\n";
         durElement = note1;
         layer1 = note1->m_crossStaff ? note1->m_crossLayer : dynamic_cast<Layer *>(note1->GetFirstAncestor(LAYER));
         startParentChord = note1->IsChordTone();

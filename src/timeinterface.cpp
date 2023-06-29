@@ -357,7 +357,7 @@ int TimePointInterface::InterfacePrepareTimestamps(FunctorParams *functorParams,
     else if (!this->HasTstamp()) {
         return FUNCTOR_CONTINUE; // This file is quite likely invalid?
     }
-
+// std::cout << this->GetTstamp() << "\n";
     // We set -1 to the data_MEASUREBEAT for @tstamp
     params->m_tstamps.push_back({ object, data_MEASUREBEAT(-1, this->GetTstamp()) });
 

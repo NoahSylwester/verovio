@@ -407,12 +407,10 @@ void MusicXmlInput::AddLayerElement(Layer *layer, LayerElement *element, int dur
     if (!element->Is({ BEAM, TUPLET })) {
         m_layerTimes[layer].emplace(m_durTotal + duration, element);
     }
-    if (element->Is({ REST, MREST, MULTIREST }) && m_lyricExtensionStack.size() > 0) {
-        if (!m_lyricExtensionStack.empty()) {
-            for (auto extendedSyl : m_lyricExtensionStack) {
-                m_lyricExtensionStack.back()->SetEnd(element);
-                m_lyricExtensionStack.pop_back();
-            }
+    if (element->Is({ REST, MREST, MULTIREST }) && !m_lyricExtensionStack.empty()) {
+        for (auto extendedSyl : m_lyricExtensionStack) {
+            m_lyricExtensionStack.back().second->SetEnd(element);
+            m_lyricExtensionStack.pop_back();
         }
     }
 }
@@ -1219,6 +1217,10 @@ bool MusicXmlInput::ReadMusicXml(pugi::xml_node root)
         LogWarning("MusicXML import: There are %d ties left open", m_tieStack.size());
         m_tieStack.clear();
     }
+    if (!m_lyricExtensionStack.empty()) {
+        LogWarning("MusicXML import: There are %d lyric extensions left open", m_lyricExtensionStack.size());    
+        m_lyricExtensionStack.clear();
+    }
     if (!m_slurStack.empty()) { // There are slurs left open
         for (auto iter = m_slurStack.begin(); iter != m_slurStack.end(); ++iter) {
             LogWarning("MusicXML import: slur %d from measure %s could not be ended", iter->second.m_number,
@@ -1246,7 +1248,6 @@ bool MusicXmlInput::ReadMusicXml(pugi::xml_node root)
         }
         m_trillStack.clear();
     }
-
     return true;
 }
 
@@ -1622,14 +1623,16 @@ bool MusicXmlInput::ReadMusicXmlPart(pugi::xml_node node, Section *section, shor
     }
 
     int i = 0;
+    Measure *prevMeasure = NULL;
     for (pugi::xpath_node_set::const_iterator it = measures.begin(); it != measures.end(); ++it) {
         pugi::xpath_node xmlMeasure = *it;
         if (!IsMultirestMeasure(i)) {
             Measure *measure = new Measure();
             m_measureCounts[measure] = i;
-            ReadMusicXmlMeasure(xmlMeasure.node(), section, measure, nbStaves, staffOffset, i);
+            ReadMusicXmlMeasure(xmlMeasure.node(), section, measure, prevMeasure, nbStaves, staffOffset, i);
             // Add the measure to the system - if already there from a previous part we'll just merge the content
             AddMeasure(section, measure, i);
+            prevMeasure = measure;
         }
         else {
             // Handle barline parsing for the multirests (where barline would be defined in last measure of the mRest)
@@ -1677,7 +1680,7 @@ bool MusicXmlInput::ReadMusicXmlPart(pugi::xml_node node, Section *section, shor
 }
 
 bool MusicXmlInput::ReadMusicXmlMeasure(
-    pugi::xml_node node, Section *section, Measure *measure, short int nbStaves, const short int staffOffset, int index)
+    pugi::xml_node node, Section *section, Measure *measure, Measure *prevMeasure, short int nbStaves, const short int staffOffset, int index)
 {
     assert(node);
     assert(measure);
@@ -1692,14 +1695,38 @@ bool MusicXmlInput::ReadMusicXmlMeasure(
         // An empty mNum means that we like to render this measure number as blank.
         measure->AddChild(mNum);
     }
-
     int i = 0;
     for (i = 0; i < nbStaves; i++) {
         // the staff @n must take into account the staffOffset
         Staff *staff = new Staff();
         staff->SetN(i + 1 + staffOffset);
-        staff->SetVisible(
-            ConvertWordToBool(node.child("attributes").child("staff-details").attribute("print-object").value()));
+        // CCLI fix staff hidden visibility
+        pugi::xml_node attr;
+        if (node.child("attributes")) {
+            attr = node.child("attributes");
+        }
+        // CCLI fix, sometimes first measures have been altered to this
+        if (node.child("mei-read")) {
+            attr = node.child("mei-read");
+        }
+        if (attr.child("staff-details").attribute("print-object")) {
+            // CCLI HIDE std::cout << attr.child("staff-details").attribute("print-object").value() << " " << (HasAttributeWithValue(attr.child("staff-details"), "print-object", "no")) << "\n";
+            if ((HasAttributeWithValue(attr.child("staff-details"), "print-object", "no"))) {
+                // std::cout << "hidedn\n\n";
+                this->m_hiddenStaves.insert(i);
+            }
+            else {
+                this->m_hiddenStaves.erase(i);
+            }
+        }
+        if ((this->m_hiddenStaves.find(i) != this->m_hiddenStaves.end())) {
+            staff->m_isManuallyHidden = true;
+        }
+        else {
+            staff->m_isManuallyHidden = false;
+        }
+        // staff->SetVisible(
+            // ConvertWordToBool(node.child("attributes").child("staff-details").attribute("print-object").value()));
         measure->AddChild(staff);
         // layers will be added in SelectLayer
     }
@@ -1715,7 +1742,7 @@ bool MusicXmlInput::ReadMusicXmlMeasure(
     const auto mrestPositonIter = m_multiRests.find(index);
     bool isMRestInOtherSystem = (mrestPositonIter != m_multiRests.end());
     int multiRestStaffNumber = 1;
-
+    pugi::xml_node prevNode;
     // read the content of the measure
     for (pugi::xml_node::iterator it = node.begin(); it != node.end(); ++it) {
         // first check if there is a multi measure rest
@@ -1760,7 +1787,7 @@ bool MusicXmlInput::ReadMusicXmlMeasure(
             ReadMusicXmlHarmony(*it, measure, measureNum);
         }
         else if (IsElement(*it, "note")) {
-            ReadMusicXmlNote(*it, measure, measureNum, staffOffset, section);
+            ReadMusicXmlNote(*it, prevNode, measure, prevMeasure, measureNum, staffOffset, section);
         }
         // for now only check first part
         else if (IsElement(*it, "print") && node.select_node("parent::part[not(preceding-sibling::part)]")) {
@@ -1770,8 +1797,9 @@ bool MusicXmlInput::ReadMusicXmlMeasure(
                 measure->m_measureLeftMargin = leftMargin.node().text().as_int();
             }
         }
+        prevNode = (*it);
     }
-
+// CCLI TODO
     // match open ties with close ties
     std::vector<std::pair<Tie *, Note *>>::iterator iter = m_tieStack.begin();
     while (iter != m_tieStack.end()) {
@@ -1779,6 +1807,8 @@ bool MusicXmlInput::ReadMusicXmlMeasure(
         bool tieMatched = false;
         std::vector<Note *>::iterator jter;
         for (jter = m_tieStopStack.begin(); jter != m_tieStopStack.end(); ++jter) {
+            Measure *measure = dynamic_cast<Measure *>((*jter)->GetFirstAncestor(MEASURE));
+            // std::cout << measure->GetN() << " stopstack\n";
             // match tie stop with pitch/oct identity, with start note earlier than end note,
             // and with earliest end note.
             if (iter->second->GetPname() == (*jter)->GetPname() && iter->second->GetOct() == (*jter)->GetOct()
@@ -1861,10 +1891,11 @@ void MusicXmlInput::ReadMusicXmlAttributes(
     // key and time change
     pugi::xml_node key = node.child("key");
     pugi::xml_node time = node.child("time");
-
+// std::cout << "definitely a node " << (time == NULL) << "\n";
     // for now only read first key change in first part and update scoreDef
-    if ((key || time || divisionChange) && node.select_node("ancestor::part[not(preceding-sibling::part)]")
-        && !node.select_node("preceding-sibling::attributes/key")) {
+    // if ((key || time || divisionChange) && node.select_node("ancestor::part[not(preceding-sibling::part)]")
+    //     && !node.select_node("preceding-sibling::attributes/key")) {
+    if ((key || time || divisionChange)) {
         ScoreDef *scoreDef = new ScoreDef();
         if (key) {
             KeySig *meiKey = ConvertKey(key);
@@ -1872,6 +1903,7 @@ void MusicXmlInput::ReadMusicXmlAttributes(
         }
 
         if (time) {
+            // std::cout << "new time!\n";
             ReadMusicXMLMeterSig(time, scoreDef);
         }
 
@@ -1980,9 +2012,11 @@ void MusicXmlInput::ReadMusicXmlBarLine(pugi::xml_node node, Measure *measure, c
             }
         }
         else if (endingType == "stop" || endingType == "discontinue") {
-            m_endingStack.back().second.m_endingType = endingType;
-            if (NotInEndingStack(measure->GetN())) {
-                m_endingStack.back().first.push_back(measure);
+            if (m_endingStack.size() != 0) {
+                m_endingStack.back().second.m_endingType = endingType;
+                if (NotInEndingStack(measure->GetN())) {
+                    m_endingStack.back().first.push_back(measure);
+                }
             }
         }
     }
@@ -2644,13 +2678,14 @@ void MusicXmlInput::ReadMusicXmlHarmony(pugi::xml_node node, Measure *measure, c
     harm->AddChild(text);
     pugi::xml_node offset = node.child("offset");
     if (offset) durOffset = offset.text().as_int();
+    // std::cout << harmText << " " <<  m_durTotal << " " << durOffset << " " << m_meterUnit << " " << m_ppq << "\n";
     harm->SetTstamp((double)(m_durTotal + durOffset) * (double)m_meterUnit / (double)(4 * m_ppq) + 1.0);
     m_controlElements.push_back({ measureNum, harm });
     m_harmStack.push_back(harm);
 }
 
 void MusicXmlInput::ReadMusicXmlNote(
-    pugi::xml_node node, Measure *measure, const std::string &measureNum, const short int staffOffset, Section *section)
+    pugi::xml_node node, pugi::xml_node prevNode, Measure *measure, Measure *prevMeasure, const std::string &measureNum, const short int staffOffset, Section *section)
 {
     assert(node);
     assert(measure);
@@ -3043,16 +3078,69 @@ void MusicXmlInput::ReadMusicXmlNote(
             m_controlElements.push_back({ measureNum, meiBeamSpan });
             m_beamspanStack.push_back({ meiBeamSpan, { staff->GetN(), layer->GetN() } });
         }
-
-        if (!m_lyricExtensionStack.empty() && (node.child("lyric") == NULL) && ((nextNote.node().child("lyric") != NULL) || (nextNote.node().child("rest") != NULL))) {
-            for (auto extendedSyl : m_lyricExtensionStack) {
-                m_lyricExtensionStack.back()->SetEnd(note);
-                m_lyricExtensionStack.pop_back();
+// CCLI fixes
+// std::cout << "alles! " << m_lyricExtensionStack.size() << " " << node.child("lyric").child("text").text().as_string() << " -> " << nextNote.node().child("lyric").child("text").text().as_string() << "\n\n";
+        if (!m_lyricExtensionStack.empty()) {
+            Syl *extendedSyl = m_lyricExtensionStack.back().second;
+            int verseNumber = m_lyricExtensionStack.back().first.first;
+            // std::cout << "measurenum " << measure->GetN() << " versenumber " << verseNumber << " " << node.child("lyric").child("text").text().as_string() << " -> " << nextNote.node().child("lyric").child("text").text().as_string() << (nextNote.node().child("lyric") == NULL) << "\n";
+            // std::cout << (node.child("lyric") == NULL) << " , " << ((nextNote.node().child("lyric"))) << "\n";
+            if ((node.child("lyric") == NULL) && ((nextNote.node().child("lyric") != NULL) || (nextNote.node().child("rest") != NULL))) {
+                // std::cout << "yes!! " << note->GetPname() << " " << node.child("lyric").child("text").text().as_string() << " -> " << nextNote.node().child("lyric").child("text").text().as_string() << "\n\n";
+                for (auto extendedSyl : m_lyricExtensionStack) {
+                    //     m_lyricExtensionStack.back().second->SetEnd(note);
+                    //     m_lyricExtensionStack.pop_back();
+                    // }
+                    bool didMatchLyrics = false;
+                    for (pugi::xml_node child : node.children()) {
+                        // std::cout << child.name() << " " << (strcmp(child.name(), "lyric") == 0) << "\n";
+                        if (strcmp(child.name(), "lyric") != 0) {
+                            continue;
+                        }
+                        // only match extension if verse numbers match
+                        if (!m_lyricExtensionStack.empty() && (child.attribute("number").as_int() == verseNumber) && (strcmp(m_lyricExtensionStack.back().first.second.c_str(), "start")!=0) && (strcmp(m_lyricExtensionStack.back().first.second.c_str(), "stop")!=0)) {
+                            m_lyricExtensionStack.back().second->SetEnd(note); //ONLY FOR NONSTARTER LEs
+                            m_lyricExtensionStack.pop_back();
+                            didMatchLyrics = true;
+                        }
+                    }
+                    if (!didMatchLyrics) {
+                        m_lyricExtensionStack.back().second->SetEnd(note); //ONLY FOR NONSTARTER LEs
+                        m_lyricExtensionStack.pop_back();
+                    }
+                }
+            }  else if ((prevMeasure != NULL)) {
+                // std::cout << "no!! " << note->GetPname() << " " << node.child("lyric").child("text").text().as_string() << " -> " << nextNote.node().child("lyric").child("text").text().as_string() << "\n";
+                Note *note = dynamic_cast<Note *>(prevMeasure->FindDescendantByType(NOTE, 10, false));
+                if (note != NULL) {
+                    // std::cout << "found note " << (node.child("lyric").attribute("number").as_int() == verseNumber) << "\n";
+                    // Syl *syl = dynamic_cast<Syl *>(note->FindDescendantByType(SYL));
+                    if ((node.child("lyric") != NULL)) {
+                        //  && (node.child("lyric").attribute("number").as_int() == verseNumber)
+                        for (pugi::xml_node child : node.children()) {
+                            // std::cout << child.name() << " " << (strcmp(child.name(), "lyric") == 0) << "\n";
+                            if (strcmp(child.name(), "lyric") != 0) {
+                                continue;
+                            }
+                            // only match extension if verse numbers match
+                            if (!m_lyricExtensionStack.empty() && (child.attribute("number").as_int() == verseNumber) && (strcmp(m_lyricExtensionStack.back().first.second.c_str(), "start")!=0) && (strcmp(m_lyricExtensionStack.back().first.second.c_str(), "stop")!=0)) {
+                                m_lyricExtensionStack.back().second->SetEnd(note); //ONLY FOR NONSTARTER LEs
+                                m_lyricExtensionStack.pop_back();
+                            }
+                        }
+                        // std::cout << "found syl" << "\n\n";
+                    }
+                    // for (auto current : note->GetChildren()) {
+                    //     std::cout << current->GetClassName() << "\n";
+                    // }
+                }
             }
-        } 
-        // (else)
+        }
+        // std::cout << "after!! " << note->GetPname() << " " << node.child("lyric").child("text").text().as_string() << " -> " << nextNote.node().child("lyric").child("text").text().as_string() << " " << (nextNote.node() == NULL) << "\n";        // (else)
         // verse / syl
         for (pugi::xml_node lyric : node.children("lyric")) {
+            pugi::xpath_node xmlExtend = lyric.select_node("extend");
+            // std::cout << lyric.child("text").text().as_string() << " + " << m_lyricExtensionStack.size() << " <<\n\n";
             short int lyricNumber = lyric.attribute("number").as_int();
             lyricNumber = (lyricNumber < 1) ? 1 : lyricNumber;
             Verse *verse = new Verse();
@@ -3061,9 +3149,11 @@ void MusicXmlInput::ReadMusicXmlNote(
             verse->SetLabel(lyric.attribute("name").as_string());
             verse->SetN(lyricNumber);
             std::string syllabic = "single";
+
             for (pugi::xml_node childNode : lyric.children()) {
                 if (!strcmp(childNode.name(), "syllabic")) syllabic = GetContent(childNode);
-                if (!strcmp(childNode.name(), "text") && !HasAttributeWithValue(lyric, "print-object", "no")) {
+                if (!strcmp(childNode.name(), "text")) { // CCLI FIX, engineers hide lyric notes for liturgical sheets so this case must be procssed
+                // if (!strcmp(childNode.name(), "text") && !HasAttributeWithValue(lyric, "print-object", "no")) {
                     const std::string textStyle = childNode.attribute("font-style").as_string();
                     const std::string textWeight = childNode.attribute("font-weight").as_string();
                     const short int lineThrough = childNode.attribute("line-through").as_int();
@@ -3126,30 +3216,50 @@ void MusicXmlInput::ReadMusicXmlNote(
                     if (childNode.next_sibling("elision")) {
                         syl->SetCon(sylLog_CON_b);
                     }
-                    pugi::xpath_node xmlExtend = lyric.select_node("extend");
+                    // std::cout << measureNum << " " << syl->m_nextWordSyl << "\n";
+                    // pugi::xpath_node xmlExtend = lyric.select_node("extend");
                     if (xmlExtend) {
                         if (strcmp(xmlExtend.node().attribute("type").as_string(), "stop") == 0) {
                             // std::cout << "two\n";
-                            // if (!m_lyricExtensionStack.empty()) {
-                            //     for (auto extendedSyl : m_lyricExtensionStack) {
-                            //         m_lyricExtensionStack.back()->SetEnd(syl);
-                            //         m_lyricExtensionStack.pop_back();
-                            //     }
-                            // }
+                                // only match extension if verse numbers match
+                                // if (m_lyricExtensionStack.back().first == lyricNumber) {
+                                //     m_lyricExtensionStack.back().second->SetEnd(note);
+                                //     m_lyricExtensionStack.pop_back();
+                                // }
+                            if (!m_lyricExtensionStack.empty()) {
+                                for (auto extendedSyl : m_lyricExtensionStack) {
+                                    // m_lyricExtensionStack.back()->SetEnd(syl);
+                                    // m_lyricExtensionStack.pop_back();
+                                    // std::cout << "vn " << m_lyricExtensionStack.back().first << " " << lyricNumber << "\n";
+                                    if (m_lyricExtensionStack.back().first.first == lyricNumber) {
+                                        // std::cout << "made it here\n";
+                                        m_lyricExtensionStack.back().second->SetEnd(note);
+                                        m_lyricExtensionStack.pop_back();
+                                    }
+                                }
+                            }
                             
                         }
                         else {
                             syl->SetCon(sylLog_CON_u);
-                            m_lyricExtensionStack.emplace_back(syl);
+                            m_lyricExtensionStack.emplace_back(std::make_pair(std::make_pair(lyricNumber,xmlExtend.node().attribute("type").as_string()), syl));
+                            // std::cout << "type "<<xmlExtend.node().attribute("type").as_string()<< " "<<measure->GetN()<< " - "<< m_lyricExtensionStack.size() << " -> "<< xmlExtend.node().attribute("type").as_string()<< " ||| "<<strcmp(lyric.child("extend").attribute("type").as_string(), "stop") << " "<< "\n";
                         } 
                     }
                     else if (!m_lyricExtensionStack.empty() && syl->m_nextWordSyl) {
                         for (auto extendedSyl : m_lyricExtensionStack) {
-                            std::cout << "1\n";
-                            m_lyricExtensionStack.back()->SetEnd(note);
+                            m_lyricExtensionStack.back().second->SetEnd(note);
                             m_lyricExtensionStack.pop_back();
                         }
                     }
+                    // std::cout << measureNum << " "<< !m_lyricExtensionStack.empty()<<" " << (prevNode != NULL) << " - " << (prevNode.child("lyric") == NULL) << (prevNode.child("lyric").child("text").text().as_string()) << " <- " << (node.child("lyric").child("text").text().as_string()) << "\n";
+                    // else if (!m_lyricExtensionStack.empty() && (prevNode != NULL) && (prevNode.child("lyric") == NULL)) {
+                    //     for (auto extendedSyl : m_lyricExtensionStack) {
+                    //         m_lyricExtensionStack.back().second->SetEnd(note);
+                    //         m_lyricExtensionStack.pop_back();
+                    //     }
+                    // }
+
 
                     if (!textStyle.empty()) syl->SetFontstyle(syl->AttTypography::StrToFontstyle(textStyle.c_str()));
                     if (!textWeight.empty())
@@ -3167,10 +3277,13 @@ void MusicXmlInput::ReadMusicXmlNote(
                         syl->AddChild(text);
                     }
                     verse->AddChild(syl);
-                } else if (!HasAttributeWithValue(lyric, "print-object", "no") && lyric.child("extend")) {
+                } else if (lyric.child("extend")) {
+                        // std::cout << "before "<<xmlExtend.node().attribute("type").as_string()<< " "<<measure->GetN()<< " - "<< m_lyricExtensionStack.size() << " -> "<< xmlExtend.node().attribute("type").as_string()<< " ___ "<<strcmp(lyric.child("extend").attribute("type").as_string(), "stop") << " "<< "\n";
+                // } else if (!HasAttributeWithValue(lyric, "print-object", "no") && lyric.child("extend")) {
                     if (!m_lyricExtensionStack.empty() && (strcmp(lyric.child("extend").attribute("type").as_string(), "stop") == 0)) {
+                        // std::cout << "type "<<xmlExtend.node().attribute("type").as_string()<<"\n";
                         for (auto extendedSyl : m_lyricExtensionStack) {
-                            m_lyricExtensionStack.back()->SetEnd(note);
+                            m_lyricExtensionStack.back().second->SetEnd(note);
                             m_lyricExtensionStack.pop_back();
                         }
                     }
@@ -3876,29 +3989,47 @@ void MusicXmlInput::ReadMusicXmlTies(
     const pugi::xml_node &node, Layer *layer, Note *note, const std::string &measureNum)
 {
     pugi::xpath_node xmlTie = node.select_node("notations[not(@print-object='no')]").node().select_node("tied");
-    // pugi::xpath_node xmlLyric = node.select_node("lyric");
-    if (!xmlTie) return;
+    pugi::xpath_node xmlLyric = node.select_node("lyric");
+    // if (!xmlTie) return;
+    // bool isChord = node.child("chord");
 
     const std::string tieType = xmlTie.node().attribute("type").as_string();
-    // if (xmlLyric) {
-    //     pugi::xpath_node xmlExtend = xmlLyric.node().select_node("extend");
-    //     const std::string extendType = xmlExtend.node().attribute("type").as_string();
-    //     std::cout << "extend " << extendType << (extendType == "stop") << "\n";
-    //     if ("stop" == extendType) {
-    //         if (!m_tieStack.empty() && note->IsEnharmonicWith(m_tieStack.back().second)) {
-    //         for (auto tiedNote : m_tieStack) {
-    //             if (note->IsEnharmonicWith(m_tieStack.back().second)) {
-    //                 m_tieStack.back().first->SetEndid("#" + note->GetID());
-    //                 m_tieStack.pop_back();
-    //             }
-    //         }
-    //     }
+    if (xmlLyric) {
+        pugi::xpath_node xmlExtend = xmlLyric.node().select_node("extend");
+        const std::string extendType = xmlExtend.node().attribute("type").as_string();
+        // CCLI HIDE  std::cout << "extend " << extendType << (extendType == "stop") << "\n";
+        if ("stop" == extendType) {
+            // if (!m_tieStack.empty() && note->IsEnharmonicWith(m_tieStack.back().second)) {
+            //     for (auto tiedNote : m_tieStack) {
+            //         if (note->IsEnharmonicWith(m_tieStack.back().second)) {
+            //             m_tieStack.back().first->SetEndid("#" + note->GetID());
+            //             m_tieStack.pop_back();
+            //         }
+            //     }
+            // }
+            if (!m_lyricExtensionStack.empty()) {
+                for (auto extendedSyl : m_lyricExtensionStack) {
+                    // if (note->IsEnharmonicWith(m_tieStack.back().second)) {
+                        m_lyricExtensionStack.back().second->SetEndid("#" + note->GetID());
+                        m_lyricExtensionStack.pop_back();
+                    // }
+                }
+            }
+        }
+    }
+    // for (auto c : node.children()) {
+    //     if (measureNum == "15") {
+    //         std::cout << c.name() << "\n";
     //     }
     // }
+    // std::cout << measureNum << " tietype " << tieType << " ischord? " << isChord << " " << note->GetPname() << "\n\n";
     if ("stop" == tieType) { // add to stack if (endTie) or if pitch/oct match to open tie on m_tieStack
         if (!m_tieStack.empty()) {
             for (auto tiedNote : m_tieStack) {
+                // std::cout << "isChord? " << isChord << "\n";
+                // std::cout << measureNum << " " << note->GetPname() << " " << m_tieStack.size() << "\n";
                 // if (note->IsEnharmonicWith(m_tieStack.back().second)) {
+                    // m_tieStack.back().first->SetEnd(note);
                     m_tieStack.back().first->SetEndid("#" + note->GetID());
                     m_tieStack.pop_back();
                 // }
@@ -3911,7 +4042,8 @@ void MusicXmlInput::ReadMusicXmlTies(
             //     }
             // }
         }
-        else if (m_tieStack.empty()) {  // CCLI hanging backwards tie fix
+        else if (m_tieStack.empty() && (node.parent().child("note") == node)) {  // CCLI hanging backwards tie fix
+            // if (node.parent.child("note") == note
             Lv *lv = new Lv();
             // color
             lv->SetColor(xmlTie.node().attribute("color").as_string());
@@ -3932,9 +4064,10 @@ void MusicXmlInput::ReadMusicXmlTies(
             m_tieStopStack.push_back(note);
         }
     }
-    else if (m_tieStack.empty()) {
+    else { // CCLI fix
         CloseTie(note);
     }
+    // std::cout << measureNum << " " << note->GetPname() << " " << m_tieStack.size() << "\n";
     // if we have start attribute - start new tie
     if ("start" == tieType) {
         Tie *tie = new Tie();
