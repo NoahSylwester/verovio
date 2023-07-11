@@ -182,7 +182,6 @@ int Syl::PrepareLyrics(FunctorParams *functorParams)
                     params->m_currentSyl->GetStart()->GetID().c_str());
             // else
                 // params->m_currentSyl->SetEnd(params->m_penultimateNoteOrChord);
-                // std::cout << "BIG ONE\n";
         }
     }
 

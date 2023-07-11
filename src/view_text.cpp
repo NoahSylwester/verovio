@@ -314,14 +314,10 @@ void View::DrawRend(DeviceContext *dc, Rend *rend, TextDrawingParams &params)
 
     dc->StartTextGraphic(rend, "", rend->GetID());
     Object *rendChild = rend->GetFirst();
-    // std::cout << rendChild->Is(TEXT_ELEMENT) << " " << rendChild->Is(TEXT) << "\n";
     if (rendChild->Is(TEXT)) {
         Text *rendText = dynamic_cast<Text *>(rendChild);
         std::wstring text = rendText->GetText();
         std::string str( text.begin(), text.end() );
-        // std::cout << params.m_laidOut;
-        // std::cout << "\nalign! " << params.m_alignment << " text " << str << " endtext\n";
-        // std::cout << "\n";
         Object *parent = rend->GetParent();
         // if (parent->Is(DIR)) {
         //     Dir *dir = dynamic_cast<Dir *>(parent);

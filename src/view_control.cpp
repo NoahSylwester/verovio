@@ -2117,9 +2117,7 @@ for (auto c : measure->GetChildren()) {
         break;
     }
     if (c->Is(HARM)) {
-        // std::cout << "HARM\n";
         prevHarm = vrv_cast<Harm *>(c);
-        // std::cout << "\nSPACER!\n";
         // Beam* spacer = new Beam();
         // measure->InsertBefore(c, spacer);
     }
@@ -2128,10 +2126,8 @@ for (auto c : measure->GetChildren()) {
 Text *rendText = dynamic_cast<Text *>(harm->FindDescendantByType(TEXT, 1));
 std::wstring text = rendText->GetText();
 std::string str( text.begin(), text.end() );
-// std::cout << "\n chord: " << str << "\n";
 if (prevHarmOverlap < 0) {
     params.m_x -= prevHarmOverlap/4;
-    // std::cout << "\nSPACER!\n";
     // Space* spacer = new Space();
     // measure->InsertBefore(harm, spacer);
 }
@@ -2154,7 +2150,6 @@ if (prevHarmOverlap < 0) {
             dc->ResetBrush();
 
             this->DrawTextEnclosure(dc, params, (*staffIter)->m_drawingStaffSize);
-            // std::cout << "HARMEND " << harm->GetContentX1() << " " << harm->GetContentX2();
         }
     }
 

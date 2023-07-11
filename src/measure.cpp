@@ -1135,32 +1135,6 @@ int Measure::AdjustXPos(FunctorParams *functorParams)
     }
 
     int currentMeasureWidth = this->GetRightBarLineLeft() - this->GetLeftBarLineRight();
-    // if (currentMeasureWidth < minMeasureWidth) {
-    //     ArrayOfAdjustmentTuples boundaries{ std::make_tuple(this->GetLeftBarLine()->GetAlignment(),
-    //         this->GetRightBarLine()->GetAlignment(), minMeasureWidth - currentMeasureWidth) };
-    //     m_measureAligner.AdjustProportionally(boundaries);
-    // } // FLAGGED
-    // vrv:ListOfObjects syls = this->FindAllDescendantsByType(SYL);
-    // int adjustmentWidth = 0;
-    // if (!syls.empty()) {
-    //     ListOfObjects::iterator iter = syls.begin();
-    //     while (iter != syls.end()) {
-    //         if ((*iter)->HasContentHorizontalBB()) {
-    //             Syl *syl = vrv_cast<Syl *>(*iter);
-    //             assert(syl);
-    //             int pointSize = params->m_doc->GetDrawingLyricFont(params->m_staffSize)->GetPointSize();
-    //             adjustmentWidth = adjustmentWidth + syl->GetText(syl).size() * pointSize/2;
-    //             ++iter;
-    //         }
-    //         else {
-    //             iter = syls.erase(iter);
-    //         }
-    //     }
-    // } else {
-    //     adjustmentWidth = 3000;
-    // }
-    // adjustmentWidth = 2000;
-    // std::cout << "TEXT SIZE MEASURE ADJUST " << adjustmentWidth << "\n";
     if (currentMeasureWidth < 2500) {
         ArrayOfAdjustmentTuples boundaries{ std::make_tuple(this->GetLeftBarLine()->GetAlignment(),
             this->GetRightBarLine()->GetAlignment(), 2500 - currentMeasureWidth) };
@@ -1572,12 +1546,10 @@ int Measure::PrepareTimestampsEnd(FunctorParams *functorParams)
     // Loop throught the object/beat pairs and create the TimestampAttr when necessary
     while (iter != params->m_tstamps.end()) {
         // -1 means that we have a @tstamp (start) to add to the current measure
-        // std::cout << (*iter).second.second << "___";
         if ((*iter).second.first == -1) {
             TimePointInterface *interface = ((*iter).first)->GetTimePointInterface();
             assert(interface);
             TimestampAttr *timestampAttr = m_timestampAligner.GetTimestampAtTime((*iter).second.second);
-            // std::cout << ((*iter).first)->GetClassId() << "\n";
             interface->SetStart(timestampAttr);
             // purge the list of unmatched element is this is a TimeSpanningInterface element
             if ((*iter).first->HasInterface(INTERFACE_TIME_SPANNING)) {
