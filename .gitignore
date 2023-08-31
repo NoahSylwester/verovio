@@ -95,3 +95,4 @@ Release/
 
 # test svg outputs
 usefulScripts
+/tests
